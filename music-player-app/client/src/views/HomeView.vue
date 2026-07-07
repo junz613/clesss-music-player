@@ -6,7 +6,6 @@ import {
   Home,
   ListMusic,
   LoaderCircle,
-  Mic2,
   Music2,
   Pause,
   Play,
@@ -109,7 +108,7 @@ function formatDuration(duration: number | null) {
 
       <section class="library-panel">
         <div class="panel-title">
-          <span>本地歌单</span>
+          <span>本地单曲</span>
           <span>{{ libraryCount }}</span>
         </div>
         <div class="playlist-list">
@@ -157,16 +156,37 @@ function formatDuration(duration: number | null) {
         </div>
 
         <div v-if="errorMessage" class="empty-state">{{ errorMessage }}</div>
-        <div v-else class="song-grid">
-          <button v-for="song in songs" :key="song.id" class="song-card" type="button" @click="playSong(song)">
-            <span class="song-card__cover">
-              <Mic2 :size="28" />
+        <div v-else class="song-list">
+          <div class="song-list__head" aria-hidden="true">
+            <span>#</span>
+            <span>标题</span>
+            <span>专辑</span>
+            <span>喜欢</span>
+            <span>时长</span>
+          </div>
+
+          <button
+            v-for="(song, index) in songs"
+            :key="song.id"
+            class="song-row"
+            type="button"
+            @click="playSong(song)"
+          >
+            <span class="song-row__index">{{ String(index + 1).padStart(2, "0") }}</span>
+            <span class="song-row__title">
+              <span class="song-row__cover">
+                <img :src="logoUrl" alt="" />
+              </span>
+              <span class="song-row__text">
+                <strong>{{ song.title }}</strong>
+                <span>{{ song.artist || song.folder }}</span>
+              </span>
             </span>
-            <span class="song-card__body">
-              <strong>{{ song.title }}</strong>
-              <span>{{ song.artist || song.folder }}</span>
+            <span class="song-row__album">{{ song.album || song.folder }}</span>
+            <span class="song-row__like">
+              <Heart :size="20" />
             </span>
-            <span class="song-card__meta">{{ formatDuration(song.duration) }}</span>
+            <span class="song-row__duration">{{ formatDuration(song.duration) }}</span>
           </button>
         </div>
       </section>
