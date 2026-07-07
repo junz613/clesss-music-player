@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import {
   ChevronDown,
   Heart,
@@ -31,6 +31,8 @@ const loading = ref(false);
 const errorMessage = ref("");
 const showPlayerDetail = ref(false);
 const showQueuePanel = ref(false);
+const queuePanelRef = ref<HTMLElement | null>(null);
+const queueToggleRef = ref<HTMLButtonElement | null>(null);
 const audioRef = ref<HTMLAudioElement | null>(null);
 const currentTime = ref(0);
 const loadedDuration = ref(0);
@@ -77,6 +79,11 @@ const volumeStyle = computed(() => ({
 
 onMounted(() => {
   void loadSongs();
+  document.addEventListener("pointerdown", handleDocumentPointerDown);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("pointerdown", handleDocumentPointerDown);
 });
 
 watch(
@@ -257,6 +264,24 @@ function toggleQueuePanel() {
   showQueuePanel.value = !showQueuePanel.value;
 }
 
+function handleDocumentPointerDown(event: PointerEvent) {
+  if (!showQueuePanel.value) {
+    return;
+  }
+
+  const target = event.target as Node | null;
+
+  if (!target) {
+    return;
+  }
+
+  if (queuePanelRef.value?.contains(target) || queueToggleRef.value?.contains(target)) {
+    return;
+  }
+
+  showQueuePanel.value = false;
+}
+
 function cyclePlaybackMode() {
   player.cyclePlaybackMode();
 }
@@ -434,7 +459,7 @@ function handleVolumeInput(event: Event) {
         <span class="playback-progress__time">{{ playbackTimeLabel }}</span>
       </button>
 
-      <section v-if="showQueuePanel" class="queue-panel" aria-label="播放列表">
+      <section v-if="showQueuePanel" ref="queuePanelRef" class="queue-panel" aria-label="播放列表">
         <header class="queue-panel__header">
           <div>
             <strong>播放列表</strong>
@@ -499,6 +524,7 @@ function handleVolumeInput(event: Event) {
           <SkipForward :size="22" />
         </button>
         <button
+          ref="queueToggleRef"
           class="icon-button"
           :class="{ 'icon-button--active': showQueuePanel }"
           type="button"
