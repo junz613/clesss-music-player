@@ -2,7 +2,7 @@
 
 Express + TypeScript + Prisma + MySQL 后端服务目录。
 
-当前已完成第四步：后端工程骨架、基础 TypeScript 配置、Express 应用入口、dotenv 环境变量读取、`/api/health` 健康检查接口、本地歌曲扫描服务和歌曲列表接口。
+当前已完成第五步：后端工程骨架、基础 TypeScript 配置、Express 应用入口、dotenv 环境变量读取、`/api/health` 健康检查接口、本地歌曲扫描服务、歌曲列表接口、歌曲搜索接口和支持 Range 的音频流接口。
 
 ## 计划目录
 
@@ -51,6 +51,20 @@ GET http://localhost:3000/api/health
 ```http
 GET http://localhost:3000/api/songs
 ```
+
+歌曲搜索接口：
+
+```http
+GET http://localhost:3000/api/songs/search?keyword=晴天
+```
+
+音频流接口：
+
+```http
+GET http://localhost:3000/api/songs/:id/stream
+```
+
+音频流接口支持 `Range` 请求，浏览器播放器可以拖动进度条。
 
 ## 本地 MySQL 与歌曲扫描
 
