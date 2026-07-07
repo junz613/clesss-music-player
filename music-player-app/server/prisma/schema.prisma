@@ -2,11 +2,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// 本地阶段使用 MySQL，DATABASE_URL 由 server/.env 或仓库根目录 .env 提供。
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
+/// 歌曲主表。真实文件路径只给后端使用，接口层会过滤掉 filePath/fileKey。
 model Song {
   id         String     @id @default(uuid()) @db.VarChar(36)
   title      String     @db.VarChar(512)
@@ -24,12 +26,14 @@ model Song {
   updatedAt  DateTime   @updatedAt
   favorites  Favorite[]
 
+  // 搜索和列表页当前主要按标题、文件夹和删除状态过滤。
   @@index([title])
   @@index([folder])
   @@index([isDeleted])
   @@map("songs")
 }
 
+/// 收藏表。第一阶段按固定 userKey 支持单用户收藏，后续可迁移到真实用户系统。
 model Favorite {
   id        String   @id @default(uuid()) @db.VarChar(36)
   songId    String   @db.VarChar(36)

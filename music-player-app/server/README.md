@@ -24,12 +24,16 @@ src/
   scripts/
     scanSongs.ts
   services/
+    audioStream.ts
     songScanner.ts
+    songPresenter.ts
   utils/
   app.ts
   index.ts
 prisma/
   schema.prisma
+scripts/
+  setup-local-mysql.ps1
 ```
 
 ## 启动方式

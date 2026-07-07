@@ -8,6 +8,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# PowerShell 的 SecureString 不能直接拼接 DATABASE_URL，这里只在内存中短暂转为明文。
 function ConvertTo-PlainText {
   param([securestring]$SecureValue)
 
@@ -25,6 +26,7 @@ $password = ConvertTo-PlainText $securePassword
 $escapedPassword = [System.Uri]::EscapeDataString($password)
 $databaseUrl = "mysql://$User`:$escapedPassword@$HostName`:$Port/$Database"
 
+# MYSQL_PWD 只在当前进程里临时存在，避免把密码写进命令行历史。
 $env:MYSQL_PWD = $password
 try {
   & $mysql.Source -h $HostName -P $Port -u $User -e "CREATE DATABASE IF NOT EXISTS ``$Database`` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
@@ -36,6 +38,7 @@ $workspaceRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
 $envPath = Join-Path $workspaceRoot ".env"
 $serverEnvPath = Join-Path (Resolve-Path (Join-Path $PSScriptRoot "..")) ".env"
 
+# Prisma CLI 默认读取 server/.env，运行时代码也会向上兼容读取仓库根目录 .env。
 $envContent = @"
 NODE_ENV=development
 

@@ -36,6 +36,12 @@ DATABASE_URL="mysql://root:your-password@127.0.0.1:3306/clesss_music_player"
 MUSIC_ROOT="D:\\ClessS"
 ```
 
+也可以运行后端提供的本地初始化脚本，它会提示输入 MySQL 密码并写入本地 `.env`：
+
+```powershell
+.\music-player-app\server\scripts\setup-local-mysql.ps1
+```
+
 ## 下一步
 
 下一步进入第六步：搭建前端基础项目，创建 Vue 3 + Vite + TypeScript 播放器界面骨架。

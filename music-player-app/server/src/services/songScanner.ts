@@ -7,6 +7,7 @@ import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
 
 const SUPPORTED_AUDIO_EXTENSIONS = new Set([".mp3"]);
+// 扫描 MUSIC_ROOT 时跳过项目、依赖和隐藏目录，避免把工程文件当作媒体库遍历。
 const SKIPPED_DIRECTORIES = new Set([
   ".agents",
   ".codex",
@@ -43,6 +44,7 @@ type SongMetadata = {
   duration: number | null;
 };
 
+// 扫描本地音乐库，并把当前磁盘状态同步到 MySQL。
 export async function scanLocalSongs(musicRoot = env.musicRoot): Promise<SongScanResult> {
   const resolvedMusicRoot = path.resolve(musicRoot);
   const rootStat = await fs.stat(resolvedMusicRoot).catch(() => null);
@@ -69,12 +71,14 @@ export async function scanLocalSongs(musicRoot = env.musicRoot): Promise<SongSca
       const fileRecord = await buildSongRecord(resolvedMusicRoot, filePath);
       scannedFileKeys.push(fileRecord.fileKey);
 
+      // fileKey 来源于相对路径，文件重扫时可以稳定匹配同一首本地歌曲。
       const existingSong = await prisma.song.findUnique({
         where: { fileKey: fileRecord.fileKey },
         select: { id: true, isDeleted: true }
       });
 
       if (existingSong) {
+        // 文件仍存在则更新元信息，并恢复之前软删除的记录。
         await prisma.song.update({
           where: { id: existingSong.id },
           data: {
@@ -88,6 +92,7 @@ export async function scanLocalSongs(musicRoot = env.musicRoot): Promise<SongSca
           result.restored += 1;
         }
       } else {
+        // 新发现的本地音频直接入库。
         await prisma.song.create({
           data: fileRecord
         });
@@ -103,6 +108,7 @@ export async function scanLocalSongs(musicRoot = env.musicRoot): Promise<SongSca
   }
 
   if (scannedFileKeys.length > 0) {
+    // 不物理删除文件；磁盘上消失的歌曲只做软删除，方便排查和恢复。
     const deletedSongs = await prisma.song.updateMany({
       where: {
         sourceType: "local",
@@ -122,6 +128,7 @@ export async function scanLocalSongs(musicRoot = env.musicRoot): Promise<SongSca
   return result;
 }
 
+// 递归发现音频文件，保持排序稳定，便于扫描结果可预测。
 async function discoverAudioFiles(musicRoot: string): Promise<string[]> {
   const audioFiles: string[] = [];
 
@@ -154,6 +161,7 @@ function shouldSkipDirectory(directoryName: string) {
   return directoryName.startsWith(".") || SKIPPED_DIRECTORIES.has(directoryName);
 }
 
+// 把一个文件路径转换成数据库需要的歌曲记录字段。
 async function buildSongRecord(musicRoot: string, filePath: string) {
   const relativePath = normalizeRelativePath(path.relative(musicRoot, filePath));
   const fileName = path.basename(filePath);
@@ -174,6 +182,7 @@ async function buildSongRecord(musicRoot: string, filePath: string) {
   };
 }
 
+// 优先使用 MP3 内嵌元信息，解析失败时回退到文件名。
 async function readSongMetadata(filePath: string, fileName: string): Promise<SongMetadata> {
   const fallbackTitle = deriveTitleFromFileName(fileName);
 
@@ -196,6 +205,7 @@ async function readSongMetadata(filePath: string, fileName: string): Promise<Son
   }
 }
 
+// 文件名里常见的日期和序号前缀不适合作为展示标题，扫描时做轻量清理。
 function deriveTitleFromFileName(fileName: string) {
   const extension = path.extname(fileName);
 
@@ -214,6 +224,7 @@ function normalizeText(value: string | undefined) {
   return normalizedValue || null;
 }
 
+// 数据库里的相对路径统一用 /，避免 Windows 路径分隔符影响排序和哈希。
 function normalizeRelativePath(value: string) {
   return value.split(path.sep).join("/");
 }

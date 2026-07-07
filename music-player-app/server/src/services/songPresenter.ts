@@ -11,6 +11,7 @@ type SongForResponse = {
   updatedAt: Date;
 };
 
+// 公开查询字段集中定义，防止接口误返回 filePath/fileKey 等后端私有信息。
 export const publicSongSelect = {
   id: true,
   title: true,
@@ -24,6 +25,7 @@ export const publicSongSelect = {
   updatedAt: true
 } as const;
 
+// playUrl 是由接口层派生出来的，不存库，方便将来切换成本地流或云端地址。
 export function presentSong(song: SongForResponse) {
   return {
     ...song,
@@ -31,6 +33,7 @@ export function presentSong(song: SongForResponse) {
   };
 }
 
+// 批量转换保持 controller 简洁。
 export function presentSongs(songs: SongForResponse[]) {
   return songs.map(presentSong);
 }

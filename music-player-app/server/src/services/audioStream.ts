@@ -12,6 +12,7 @@ const AUDIO_MIME_TYPES: Record<string, string> = {
   ".ogg": "audio/ogg"
 };
 
+// 没有显式 Range 结束位置时，默认最多返回 1MB，避免超大响应占用过多内存和带宽。
 const DEFAULT_CHUNK_SIZE = 1024 * 1024;
 
 type StreamAudioOptions = {
@@ -23,6 +24,7 @@ type StreamAudioOptions = {
 export async function streamAudioFile({ filePath, rangeHeader, response }: StreamAudioOptions) {
   const stat = await fsPromises.stat(filePath).catch(() => null);
 
+  // 数据库记录存在但本地文件被移动/删除时，返回清晰的 404。
   if (!stat?.isFile()) {
     response.status(404).json({ message: "Audio file not found" });
     return;
@@ -31,6 +33,7 @@ export async function streamAudioFile({ filePath, rangeHeader, response }: Strea
   const fileSize = stat.size;
   const contentType = getAudioContentType(filePath);
 
+  // 没有 Range 时返回完整文件，浏览器仍可直接播放。
   if (!rangeHeader) {
     response.writeHead(200, {
       "Accept-Ranges": "bytes",
@@ -43,6 +46,7 @@ export async function streamAudioFile({ filePath, rangeHeader, response }: Strea
 
   const range = parseRange(rangeHeader, fileSize);
 
+  // 无效 Range 必须返回 416，并告知可用文件总长度。
   if (!range) {
     response.writeHead(416, {
       "Content-Range": `bytes */${fileSize}`
@@ -63,6 +67,7 @@ export async function streamAudioFile({ filePath, rangeHeader, response }: Strea
   fs.createReadStream(filePath, { start, end }).pipe(response);
 }
 
+// 支持 bytes=start-end、bytes=start- 和 bytes=-suffix 三种常见 Range 格式。
 function parseRange(rangeHeader: string, fileSize: number) {
   const match = /^bytes=(\d*)-(\d*)$/u.exec(rangeHeader);
 
@@ -90,6 +95,7 @@ function parseRange(rangeHeader: string, fileSize: number) {
   };
 }
 
+// 目前主要播放 mp3，保留常见类型映射方便以后扩展上传格式。
 function getAudioContentType(filePath: string) {
   return AUDIO_MIME_TYPES[path.extname(filePath).toLowerCase()] ?? "application/octet-stream";
 }
