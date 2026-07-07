@@ -8,6 +8,7 @@
 - 已初始化 Git 仓库。
 - 已创建应用目录：`music-player-app`
 - 已准备 `.gitignore` 和 `.env.example`
+- 已完成后端健康检查、MySQL 数据模型、本地歌曲扫描脚本和歌曲列表接口。
 - 数据库方案已调整为 MySQL。
 
 ## 目录说明
@@ -37,4 +38,4 @@ MUSIC_ROOT="D:\\ClessS"
 
 ## 下一步
 
-下一步进入第三步：搭建后端基础项目，创建 Express + TypeScript + Prisma + MySQL 的服务骨架，并提供 `/api/health` 健康检查接口。
+下一步进入第五步：实现歌曲搜索和音频流接口，让前端可以按关键词搜索并播放本地歌曲文件。

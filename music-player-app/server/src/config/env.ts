@@ -10,14 +10,14 @@ const appRoot = path.resolve(serverRoot, "..");
 const workspaceRoot = path.resolve(appRoot, "..");
 
 const envFiles = [
-  path.join(workspaceRoot, ".env"),
+  path.join(serverRoot, ".env"),
   path.join(appRoot, ".env"),
-  path.join(serverRoot, ".env")
+  path.join(workspaceRoot, ".env")
 ];
 
 for (const envFile of envFiles) {
   if (fs.existsSync(envFile)) {
-    dotenv.config({ path: envFile, override: true });
+    dotenv.config({ path: envFile });
   }
 }
 

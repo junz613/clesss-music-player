@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 
 import { env } from "./config/env.js";
+import { errorHandler } from "./middlewares/errorHandler.js";
 import { apiRoutes } from "./routes/index.js";
 
 export function createApp() {
@@ -25,6 +26,7 @@ export function createApp() {
       message: "Route not found"
     });
   });
+  app.use(errorHandler);
 
   return app;
 }
