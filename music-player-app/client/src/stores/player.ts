@@ -21,6 +21,38 @@ export const usePlayerStore = defineStore("player", {
       }
 
       this.isPlaying = !this.isPlaying;
+    },
+    playNext() {
+      if (!this.queue.length) {
+        return null;
+      }
+
+      const currentIndex = this.findCurrentIndex();
+      const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % this.queue.length : 0;
+
+      this.currentSong = this.queue[nextIndex];
+      this.isPlaying = true;
+      return this.currentSong;
+    },
+    playPrevious() {
+      if (!this.queue.length) {
+        return null;
+      }
+
+      const currentIndex = this.findCurrentIndex();
+      const previousIndex =
+        currentIndex >= 0 ? (currentIndex - 1 + this.queue.length) % this.queue.length : 0;
+
+      this.currentSong = this.queue[previousIndex];
+      this.isPlaying = true;
+      return this.currentSong;
+    },
+    findCurrentIndex() {
+      if (!this.currentSong) {
+        return -1;
+      }
+
+      return this.queue.findIndex((song) => song.id === this.currentSong?.id);
     }
   }
 });

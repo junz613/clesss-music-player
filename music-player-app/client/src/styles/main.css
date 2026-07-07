@@ -579,6 +579,15 @@ button {
   background: #fafbfe;
 }
 
+.song-row--active {
+  background: #fff7f9;
+}
+
+.song-row--active .song-row__text strong,
+.song-row--active .song-row__index {
+  color: #ff3d57;
+}
+
 .song-row__index {
   color: #9aa3b4;
   font-weight: 700;

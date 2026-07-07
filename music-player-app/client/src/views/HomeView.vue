@@ -149,8 +149,7 @@ function syncAudioProgress() {
 }
 
 function handleAudioEnded() {
-  currentTime.value = playbackDuration.value;
-  player.isPlaying = false;
+  playNextSong();
 }
 
 function seekFromPointer(event: MouseEvent) {
@@ -167,6 +166,47 @@ function seekFromPointer(event: MouseEvent) {
 
   if (audioRef.value) {
     audioRef.value.currentTime = nextTime;
+  }
+}
+
+function playNextSong() {
+  const previousSongId = player.currentSong?.id;
+  const nextSong = player.playNext();
+
+  if (!nextSong) {
+    player.isPlaying = false;
+    return;
+  }
+
+  restartAudioIfSameSong(previousSongId, nextSong.id);
+  void nextTick(() => playCurrentAudio());
+}
+
+function playPreviousSong() {
+  const previousSongId = player.currentSong?.id;
+  const previousSong = player.playPrevious();
+
+  if (!previousSong) {
+    player.isPlaying = false;
+    return;
+  }
+
+  restartAudioIfSameSong(previousSongId, previousSong.id);
+  void nextTick(() => playCurrentAudio());
+}
+
+function restartAudioIfSameSong(previousSongId: string | undefined, nextSongId: string) {
+  if (previousSongId !== nextSongId || !audioRef.value) {
+    return;
+  }
+
+  audioRef.value.currentTime = 0;
+  currentTime.value = 0;
+}
+
+function handleAudioCanPlay() {
+  if (player.isPlaying) {
+    void playCurrentAudio();
   }
 }
 </script>
@@ -261,6 +301,7 @@ function seekFromPointer(event: MouseEvent) {
             v-for="(song, index) in songs"
             :key="song.id"
             class="song-row"
+            :class="{ 'song-row--active': player.currentSong?.id === song.id }"
             type="button"
             @click="playSong(song)"
           >
@@ -351,14 +392,14 @@ function seekFromPointer(event: MouseEvent) {
         <button class="icon-button" type="button" title="随机播放">
           <Shuffle :size="20" />
         </button>
-        <button class="icon-button" type="button" title="上一首">
+        <button class="icon-button" type="button" title="上一首" @click="playPreviousSong">
           <SkipBack :size="22" />
         </button>
         <button class="play-button" type="button" title="播放/暂停" @click="player.togglePlaying">
           <Pause v-if="player.isPlaying" :size="28" fill="currentColor" />
           <Play v-else :size="28" fill="currentColor" />
         </button>
-        <button class="icon-button" type="button" title="下一首">
+        <button class="icon-button" type="button" title="下一首" @click="playNextSong">
           <SkipForward :size="22" />
         </button>
         <button class="icon-button" type="button" title="播放队列">
@@ -376,6 +417,7 @@ function seekFromPointer(event: MouseEvent) {
         :src="player.currentSong?.playUrl"
         preload="metadata"
         @loadedmetadata="syncAudioDuration"
+        @canplay="handleAudioCanPlay"
         @timeupdate="syncAudioProgress"
         @ended="handleAudioEnded"
       ></audio>
