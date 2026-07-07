@@ -4,6 +4,8 @@
   "private": true,
   "packageManager": "pnpm@11.10.0",
   "scripts": {
+    "client:dev": "pnpm --dir client dev",
+    "client:build": "pnpm --dir client build",
     "server:dev": "pnpm --dir server dev",
     "server:build": "pnpm --dir server build"
   }
