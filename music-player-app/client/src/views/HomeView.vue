@@ -11,14 +11,17 @@ import {
   Play,
   Search,
   Settings,
-  Shuffle,
   SkipBack,
   SkipForward,
+  Trash2,
   Volume2
 } from "lucide-vue-next";
 
 import { fetchSongs, searchSongs, type Song } from "../api/songs";
 import logoUrl from "../assets/clesss-logo.jpg";
+import listLoopIconUrl from "../assets/player/play-mode-list-loop.png";
+import randomIconUrl from "../assets/player/play-mode-random.png";
+import singleLoopIconUrl from "../assets/player/play-mode-single-loop.png";
 import { usePlayerStore } from "../stores/player";
 
 const player = usePlayerStore();
@@ -27,9 +30,11 @@ const keyword = ref("");
 const loading = ref(false);
 const errorMessage = ref("");
 const showPlayerDetail = ref(false);
+const showQueuePanel = ref(false);
 const audioRef = ref<HTMLAudioElement | null>(null);
 const currentTime = ref(0);
 const loadedDuration = ref(0);
+const volume = ref(0.72);
 
 const highlightedSongs = computed(() => songs.value.slice(0, 6));
 const libraryCount = computed(() => songs.value.length);
@@ -47,6 +52,28 @@ const progressStyle = computed(() => ({
 const playbackTimeLabel = computed(
   () => `${formatDuration(currentTime.value)} / ${formatDuration(playbackDuration.value)}`
 );
+const playbackModeMeta = computed(() => {
+  switch (player.playbackMode) {
+    case "random":
+      return {
+        icon: randomIconUrl,
+        label: "随机播放"
+      };
+    case "singleLoop":
+      return {
+        icon: singleLoopIconUrl,
+        label: "单曲循环"
+      };
+    default:
+      return {
+        icon: listLoopIconUrl,
+        label: "列表循环"
+      };
+  }
+});
+const volumeStyle = computed(() => ({
+  "--volume-left": `${Math.round(volume.value * 100)}%`
+}));
 
 onMounted(() => {
   void loadSongs();
@@ -76,6 +103,12 @@ watch(
   }
 );
 
+watch(volume, (nextVolume) => {
+  if (audioRef.value) {
+    audioRef.value.volume = nextVolume;
+  }
+});
+
 // Search and initial loading are both backed by the server, keeping local filtering out of the UI layer.
 async function loadSongs() {
   loading.value = true;
@@ -99,6 +132,11 @@ function playSong(song: Song) {
   void nextTick(() => playCurrentAudio());
 }
 
+function playQueuedSong(song: Song) {
+  player.play(song, player.queue);
+  void nextTick(() => playCurrentAudio());
+}
+
 // The full player mirrors the reference detail page and only opens after a song has been selected.
 function openPlayerDetail() {
   if (player.currentSong) {
@@ -110,8 +148,8 @@ function closePlayerDetail() {
   showPlayerDetail.value = false;
 }
 
-function formatDuration(duration: number | null) {
-  if (duration === null || !Number.isFinite(duration)) {
+function formatDuration(duration: number | null | undefined) {
+  if (duration === null || duration === undefined || !Number.isFinite(duration)) {
     return "--:--";
   }
 
@@ -129,6 +167,7 @@ async function playCurrentAudio() {
   }
 
   try {
+    audio.volume = volume.value;
     await audio.play();
   } catch {
     player.isPlaying = false;
@@ -205,9 +244,26 @@ function restartAudioIfSameSong(previousSongId: string | undefined, nextSongId: 
 }
 
 function handleAudioCanPlay() {
+  if (audioRef.value) {
+    audioRef.value.volume = volume.value;
+  }
+
   if (player.isPlaying) {
     void playCurrentAudio();
   }
+}
+
+function toggleQueuePanel() {
+  showQueuePanel.value = !showQueuePanel.value;
+}
+
+function cyclePlaybackMode() {
+  player.cyclePlaybackMode();
+}
+
+function handleVolumeInput(event: Event) {
+  const target = event.target as HTMLInputElement;
+  volume.value = Number(target.value);
 }
 </script>
 
@@ -378,6 +434,46 @@ function handleAudioCanPlay() {
         <span class="playback-progress__time">{{ playbackTimeLabel }}</span>
       </button>
 
+      <section v-if="showQueuePanel" class="queue-panel" aria-label="播放列表">
+        <header class="queue-panel__header">
+          <div>
+            <strong>播放列表</strong>
+            <span>{{ player.queue.length }}</span>
+          </div>
+          <button class="queue-panel__clear" type="button" title="清空播放列表" @click="player.clearQueue">
+            <Trash2 :size="17" />
+            <span>清空</span>
+          </button>
+        </header>
+
+        <div class="queue-panel__hint">
+          <span>荐</span>
+          <p>当前列表会从所点击歌曲开始顺序播放</p>
+        </div>
+
+        <div v-if="player.queue.length" class="queue-list">
+          <button
+            v-for="song in player.queue"
+            :key="song.id"
+            class="queue-item"
+            :class="{ 'queue-item--active': player.currentSong?.id === song.id }"
+            type="button"
+            @click="playQueuedSong(song)"
+          >
+            <span class="queue-item__cover">
+              <img :src="logoUrl" alt="" />
+            </span>
+            <span class="queue-item__text">
+              <strong>{{ song.title }}</strong>
+              <small>{{ song.artist || song.folder }}</small>
+            </span>
+            <span class="queue-item__duration">{{ formatDuration(song.duration) }}</span>
+          </button>
+        </div>
+
+        <div v-else class="queue-empty">暂无播放列表</div>
+      </section>
+
       <button class="now-playing" type="button" :disabled="!player.currentSong" title="打开播放详情" @click="openPlayerDetail">
         <span class="disc">
           <img :src="logoUrl" alt="" />
@@ -389,8 +485,8 @@ function handleAudioCanPlay() {
       </button>
 
       <div class="player-controls">
-        <button class="icon-button" type="button" title="随机播放">
-          <Shuffle :size="20" />
+        <button class="icon-button mode-button" type="button" :title="playbackModeMeta.label" @click="cyclePlaybackMode">
+          <img :src="playbackModeMeta.icon" :alt="playbackModeMeta.label" />
         </button>
         <button class="icon-button" type="button" title="上一首" @click="playPreviousSong">
           <SkipBack :size="22" />
@@ -402,14 +498,30 @@ function handleAudioCanPlay() {
         <button class="icon-button" type="button" title="下一首" @click="playNextSong">
           <SkipForward :size="22" />
         </button>
-        <button class="icon-button" type="button" title="播放队列">
+        <button
+          class="icon-button"
+          :class="{ 'icon-button--active': showQueuePanel }"
+          type="button"
+          title="播放列表"
+          @click="toggleQueuePanel"
+        >
           <ListMusic :size="22" />
         </button>
       </div>
 
       <div class="volume-zone">
         <Volume2 :size="22" />
-        <span class="volume-line"></span>
+        <input
+          class="volume-slider"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          :value="volume"
+          :style="volumeStyle"
+          aria-label="音量"
+          @input="handleVolumeInput"
+        />
       </div>
 
       <audio

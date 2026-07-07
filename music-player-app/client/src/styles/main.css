@@ -88,6 +88,8 @@ button {
 .nav-item,
 .playlist-item,
 .song-row,
+.queue-panel__clear,
+.queue-item,
 .icon-button,
 .primary-action,
 .play-button,
@@ -522,6 +524,11 @@ button {
   background: #fff;
 }
 
+.icon-button--active {
+  color: #ec223b;
+  background: #fff0f3;
+}
+
 .spinning {
   animation: spin 1s linear infinite;
 }
@@ -774,6 +781,150 @@ button {
   opacity: 1;
 }
 
+.queue-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 14px);
+  z-index: 42;
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(72vh, 640px);
+  overflow: hidden;
+  color: #273149;
+  background: rgb(255 255 255 / 98%);
+  border: 1px solid #e8ecf3;
+  border-radius: 8px 0 0 8px;
+  box-shadow: 0 18px 46px rgb(31 42 68 / 22%);
+}
+
+.queue-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+  padding: 0 24px;
+  border-bottom: 1px solid #eef1f5;
+}
+
+.queue-panel__header strong {
+  margin-right: 6px;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.queue-panel__header span {
+  color: #8b94a5;
+}
+
+.queue-panel__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #7d8799;
+  background: transparent;
+}
+
+.queue-panel__clear:hover {
+  color: #ec223b;
+}
+
+.queue-panel__hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 24px;
+  color: #7d8799;
+  background: #fafbfe;
+  border-bottom: 1px solid #eef1f5;
+}
+
+.queue-panel__hint span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: #4772c2;
+  font-weight: 800;
+  background: #eef4ff;
+  border-radius: 6px;
+}
+
+.queue-panel__hint p {
+  margin: 0;
+}
+
+.queue-list {
+  max-height: calc(min(72vh, 640px) - 124px);
+  overflow: auto;
+}
+
+.queue-item {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 82px;
+  padding: 10px 22px;
+  color: #273149;
+  text-align: left;
+  background: #fff;
+}
+
+.queue-item:hover,
+.queue-item--active {
+  background: #f1f3f7;
+}
+
+.queue-item__cover {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #eef1f6;
+  border-radius: 8px;
+}
+
+.queue-item__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.queue-item__text {
+  min-width: 0;
+}
+
+.queue-item__text strong,
+.queue-item__text small {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.queue-item__text strong {
+  font-size: 16px;
+}
+
+.queue-item__text small,
+.queue-item__duration {
+  color: #8b94a5;
+}
+
+.queue-item--active .queue-item__text strong {
+  color: #ec223b;
+}
+
+.queue-empty {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  color: #8b94a5;
+}
+
 .now-playing {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr);
@@ -818,6 +969,12 @@ button {
   gap: 12px;
 }
 
+.mode-button img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
 .play-button {
   display: grid;
   place-items: center;
@@ -837,20 +994,34 @@ button {
   color: #6f798b;
 }
 
-.volume-line {
-  width: 110px;
+.volume-slider {
+  --volume-left: 72%;
+  width: 118px;
   height: 4px;
-  background: #dfe5ef;
+  appearance: none;
+  cursor: pointer;
+  background: linear-gradient(to right, #ff3d57 var(--volume-left), #dfe5ef var(--volume-left));
   border-radius: 999px;
+  outline: 0;
 }
 
-.volume-line::before {
-  display: block;
-  width: 62%;
-  height: 100%;
-  content: "";
-  background: #ff3d57;
-  border-radius: inherit;
+.volume-slider::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  appearance: none;
+  background: #fff;
+  border: 1px solid #d8dde7;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgb(31 42 68 / 18%);
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border: 1px solid #d8dde7;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgb(31 42 68 / 18%);
 }
 
 @keyframes spin {
@@ -996,6 +1167,13 @@ button {
     left: 0;
     gap: 8px;
     padding: 10px 14px;
+  }
+
+  .queue-panel {
+    right: 8px;
+    left: 8px;
+    width: auto;
+    border-radius: 8px;
   }
 
   .player-controls {

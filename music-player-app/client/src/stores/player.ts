@@ -2,17 +2,20 @@ import { defineStore } from "pinia";
 
 import type { Song } from "../api/songs";
 
+export type PlaybackMode = "listLoop" | "singleLoop" | "random";
+
 export const usePlayerStore = defineStore("player", {
   state: () => ({
     currentSong: null as Song | null,
     queue: [] as Song[],
-    isPlaying: false
+    isPlaying: false,
+    playbackMode: "listLoop" as PlaybackMode
   }),
   actions: {
-    // The current queue is captured from the visible list, so next-step controls can switch within search results.
+    // The visible list becomes the queue from the clicked song onward, matching the local demo playback rule.
     play(song: Song, queue: Song[]) {
       this.currentSong = song;
-      this.queue = queue;
+      this.queue = this.createQueueFromSong(song, queue);
       this.isPlaying = true;
     },
     togglePlaying() {
@@ -27,6 +30,21 @@ export const usePlayerStore = defineStore("player", {
         return null;
       }
 
+      if (this.playbackMode === "singleLoop" && this.currentSong) {
+        this.isPlaying = true;
+        return this.currentSong;
+      }
+
+      if (this.playbackMode === "random") {
+        const nextSong = this.pickRandomSong();
+
+        if (nextSong) {
+          this.currentSong = nextSong;
+          this.isPlaying = true;
+          return this.currentSong;
+        }
+      }
+
       const currentIndex = this.findCurrentIndex();
       const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % this.queue.length : 0;
 
@@ -37,6 +55,21 @@ export const usePlayerStore = defineStore("player", {
     playPrevious() {
       if (!this.queue.length) {
         return null;
+      }
+
+      if (this.playbackMode === "singleLoop" && this.currentSong) {
+        this.isPlaying = true;
+        return this.currentSong;
+      }
+
+      if (this.playbackMode === "random") {
+        const previousSong = this.pickRandomSong();
+
+        if (previousSong) {
+          this.currentSong = previousSong;
+          this.isPlaying = true;
+          return this.currentSong;
+        }
       }
 
       const currentIndex = this.findCurrentIndex();
@@ -53,6 +86,42 @@ export const usePlayerStore = defineStore("player", {
       }
 
       return this.queue.findIndex((song) => song.id === this.currentSong?.id);
+    },
+    cyclePlaybackMode() {
+      const modeOrder: PlaybackMode[] = ["listLoop", "singleLoop", "random"];
+      const currentIndex = modeOrder.indexOf(this.playbackMode);
+
+      this.playbackMode = modeOrder[(currentIndex + 1) % modeOrder.length];
+    },
+    clearQueue() {
+      this.queue = this.currentSong ? [this.currentSong] : [];
+    },
+    createQueueFromSong(song: Song, queue: Song[]) {
+      const startIndex = queue.findIndex((queueSong) => queueSong.id === song.id);
+
+      if (startIndex < 0) {
+        return [song];
+      }
+
+      return queue.slice(startIndex);
+    },
+    pickRandomSong() {
+      if (!this.queue.length) {
+        return null;
+      }
+
+      if (this.queue.length === 1) {
+        return this.queue[0];
+      }
+
+      const currentIndex = this.findCurrentIndex();
+      let randomIndex = currentIndex;
+
+      while (randomIndex === currentIndex) {
+        randomIndex = Math.floor(Math.random() * this.queue.length);
+      }
+
+      return this.queue[randomIndex];
     }
   }
 });
