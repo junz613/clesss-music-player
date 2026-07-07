@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import {
   ChevronDown,
   Heart,
@@ -27,13 +27,54 @@ const keyword = ref("");
 const loading = ref(false);
 const errorMessage = ref("");
 const showPlayerDetail = ref(false);
+const audioRef = ref<HTMLAudioElement | null>(null);
+const currentTime = ref(0);
+const loadedDuration = ref(0);
 
 const highlightedSongs = computed(() => songs.value.slice(0, 6));
 const libraryCount = computed(() => songs.value.length);
+const playbackDuration = computed(() => loadedDuration.value || player.currentSong?.duration || 0);
+const progressPercent = computed(() => {
+  if (!playbackDuration.value) {
+    return 0;
+  }
+
+  return Math.min(100, Math.max(0, (currentTime.value / playbackDuration.value) * 100));
+});
+const progressStyle = computed(() => ({
+  "--progress-left": `${progressPercent.value}%`
+}));
+const playbackTimeLabel = computed(
+  () => `${formatDuration(currentTime.value)} / ${formatDuration(playbackDuration.value)}`
+);
 
 onMounted(() => {
   void loadSongs();
 });
+
+watch(
+  () => player.currentSong?.id,
+  () => {
+    currentTime.value = 0;
+    loadedDuration.value = player.currentSong?.duration || 0;
+
+    if (player.currentSong && player.isPlaying) {
+      void nextTick(() => playCurrentAudio());
+    }
+  }
+);
+
+watch(
+  () => player.isPlaying,
+  (isPlaying) => {
+    if (isPlaying) {
+      void playCurrentAudio();
+      return;
+    }
+
+    audioRef.value?.pause();
+  }
+);
 
 // Search and initial loading are both backed by the server, keeping local filtering out of the UI layer.
 async function loadSongs() {
@@ -55,6 +96,7 @@ async function loadSongs() {
 
 function playSong(song: Song) {
   player.play(song, songs.value);
+  void nextTick(() => playCurrentAudio());
 }
 
 // The full player mirrors the reference detail page and only opens after a song has been selected.
@@ -69,13 +111,63 @@ function closePlayerDetail() {
 }
 
 function formatDuration(duration: number | null) {
-  if (!duration) {
+  if (duration === null || !Number.isFinite(duration)) {
     return "--:--";
   }
 
-  const minutes = Math.floor(duration / 60);
-  const seconds = String(duration % 60).padStart(2, "0");
+  const safeDuration = Math.max(0, Math.floor(duration));
+  const minutes = String(Math.floor(safeDuration / 60)).padStart(2, "0");
+  const seconds = String(safeDuration % 60).padStart(2, "0");
   return `${minutes}:${seconds}`;
+}
+
+async function playCurrentAudio() {
+  const audio = audioRef.value;
+
+  if (!audio || !player.currentSong) {
+    return;
+  }
+
+  try {
+    await audio.play();
+  } catch {
+    player.isPlaying = false;
+  }
+}
+
+function syncAudioDuration() {
+  const duration = audioRef.value?.duration;
+
+  if (duration && Number.isFinite(duration)) {
+    loadedDuration.value = duration;
+  }
+}
+
+function syncAudioProgress() {
+  currentTime.value = audioRef.value?.currentTime || 0;
+  syncAudioDuration();
+}
+
+function handleAudioEnded() {
+  currentTime.value = playbackDuration.value;
+  player.isPlaying = false;
+}
+
+function seekFromPointer(event: MouseEvent) {
+  if (!player.currentSong || !playbackDuration.value) {
+    return;
+  }
+
+  const target = event.currentTarget as HTMLElement;
+  const rect = target.getBoundingClientRect();
+  const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+  const nextTime = ratio * playbackDuration.value;
+
+  currentTime.value = nextTime;
+
+  if (audioRef.value) {
+    audioRef.value.currentTime = nextTime;
+  }
 }
 </script>
 
@@ -230,6 +322,21 @@ function formatDuration(duration: number | null) {
     </section>
 
     <footer class="player-bar">
+      <button
+        class="playback-progress"
+        :disabled="!player.currentSong"
+        :style="progressStyle"
+        type="button"
+        aria-label="播放进度"
+        @click="seekFromPointer"
+      >
+        <span class="playback-progress__track">
+          <span class="playback-progress__fill"></span>
+        </span>
+        <span class="playback-progress__thumb"></span>
+        <span class="playback-progress__time">{{ playbackTimeLabel }}</span>
+      </button>
+
       <button class="now-playing" type="button" :disabled="!player.currentSong" title="打开播放详情" @click="openPlayerDetail">
         <span class="disc">
           <img :src="logoUrl" alt="" />
@@ -263,6 +370,15 @@ function formatDuration(duration: number | null) {
         <Volume2 :size="22" />
         <span class="volume-line"></span>
       </div>
+
+      <audio
+        ref="audioRef"
+        :src="player.currentSong?.playUrl"
+        preload="metadata"
+        @loadedmetadata="syncAudioDuration"
+        @timeupdate="syncAudioProgress"
+        @ended="handleAudioEnded"
+      ></audio>
     </footer>
   </div>
 </template>

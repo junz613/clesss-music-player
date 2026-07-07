@@ -665,8 +665,104 @@ button {
   min-width: 0;
   padding: 14px 28px;
   background: #fff;
-  border-top: 3px solid #ff6f82;
+  border-top: 0;
   box-shadow: 0 -12px 30px rgb(39 49 73 / 8%);
+}
+
+.playback-progress {
+  --progress-left: 0%;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 3;
+  display: block;
+  width: 100%;
+  height: 22px;
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.playback-progress:disabled {
+  cursor: default;
+}
+
+.playback-progress__track {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+  overflow: hidden;
+  background: transparent;
+  transition:
+    height 160ms ease,
+    background-color 160ms ease;
+}
+
+.playback-progress:not(:disabled):hover .playback-progress__track {
+  height: 8px;
+  background: #dfe3ea;
+}
+
+.playback-progress__fill {
+  display: block;
+  width: var(--progress-left);
+  height: 100%;
+  background: #ff3d57;
+}
+
+.playback-progress__thumb {
+  position: absolute;
+  top: 1px;
+  left: var(--progress-left);
+  width: 16px;
+  height: 16px;
+  opacity: 0;
+  background: #fff;
+  border: 1px solid #d8dde7;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgb(31 42 68 / 22%);
+  transform: translate(-50%, -50%);
+  transition:
+    opacity 160ms ease,
+    top 160ms ease;
+  pointer-events: none;
+}
+
+.playback-progress:not(:disabled):hover .playback-progress__thumb {
+  top: 4px;
+  opacity: 1;
+}
+
+.playback-progress__time {
+  position: absolute;
+  top: -44px;
+  left: var(--progress-left);
+  min-width: 132px;
+  padding: 8px 14px;
+  color: #273149;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+  opacity: 0;
+  background: #fff;
+  border-radius: 999px;
+  box-shadow: 0 10px 26px rgb(31 42 68 / 16%);
+  transform: translateX(-50%);
+  transition:
+    opacity 160ms ease,
+    top 160ms ease;
+  pointer-events: none;
+}
+
+.playback-progress:not(:disabled):hover .playback-progress__time {
+  top: -50px;
+  opacity: 1;
 }
 
 .now-playing {
