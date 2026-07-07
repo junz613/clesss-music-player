@@ -1,0 +1,10 @@
+{
+  "name": "clesss-music-player",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.10.0",
+  "scripts": {
+    "server:dev": "pnpm --dir server dev",
+    "server:build": "pnpm --dir server build"
+  }
+}

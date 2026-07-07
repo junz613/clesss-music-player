@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+.vite/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# Runtime data
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+*.dump
+
+# Local uploads and generated files
+uploads/
+tmp/
+temp/
+
+# Audio library files
+*.mp3
+*.flac
+*.wav
+*.m4a
+*.aac
+*.ogg
+
+# Existing local music folders at repository root
+/ClessS*/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local assistant/workspace metadata
+.agents/
+.codex/
