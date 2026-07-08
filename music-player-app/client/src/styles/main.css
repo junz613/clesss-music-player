@@ -574,6 +574,63 @@ button {
   border-radius: 8px;
 }
 
+.folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.folder-card {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-height: 86px;
+  padding: 14px;
+  color: #273149;
+  text-align: left;
+  background: #fff;
+  border: 1px solid #e7ebf4;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgb(39 49 73 / 6%);
+}
+
+.folder-card:hover {
+  border-color: #ffd0d8;
+  box-shadow: 0 16px 36px rgb(255 61 87 / 10%);
+}
+
+.folder-card__cover {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  color: #fff;
+  background: #ff3d57;
+  border-radius: 8px;
+}
+
+.folder-card__body {
+  min-width: 0;
+}
+
+.folder-card__body strong,
+.folder-card__body small {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.folder-card__body strong {
+  font-size: 16px;
+}
+
+.folder-card__body small {
+  margin-top: 6px;
+  color: #8a93a3;
+}
+
 .song-list__head,
 .song-row {
   display: grid;

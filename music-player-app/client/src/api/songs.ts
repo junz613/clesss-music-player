@@ -30,17 +30,23 @@ const api = axios.create({
 });
 
 // Keep API calls in one small wrapper so components do not depend on axios details.
-export async function fetchSongs(pageSize = 30) {
+export type SongListParams = {
+  page?: number;
+  pageSize?: number;
+  folder?: string;
+};
+
+export async function fetchSongs(params: SongListParams = {}) {
   const response = await api.get<SongListResponse>("/songs", {
-    params: { pageSize }
+    params
   });
 
   return response.data;
 }
 
-export async function searchSongs(keyword: string, pageSize = 30) {
+export async function searchSongs(keyword: string, params: SongListParams = {}) {
   const response = await api.get<SongListResponse>("/songs/search", {
-    params: { keyword, pageSize }
+    params: { keyword, ...params }
   });
 
   return response.data;

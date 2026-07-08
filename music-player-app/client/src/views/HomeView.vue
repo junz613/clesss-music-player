@@ -17,19 +17,24 @@ import {
   Volume2
 } from "lucide-vue-next";
 
-import { fetchSongs, searchSongs, type Song } from "../api/songs";
+import { fetchSongs, searchSongs, type Song, type SongListParams } from "../api/songs";
 import logoUrl from "../assets/clesss-logo.jpg";
 import listLoopIconUrl from "../assets/player/play-mode-list-loop.png";
 import randomIconUrl from "../assets/player/play-mode-random.png";
 import singleLoopIconUrl from "../assets/player/play-mode-single-loop.png";
 import { usePlayerStore } from "../stores/player";
 
-const SONG_LIST_PAGE_SIZE = 500;
+type ViewMode = "home" | "search" | "library" | "folder";
+
+const REQUEST_PAGE_SIZE = 500;
 const PLAY_ALL_LIMIT = 500;
 
 const player = usePlayerStore();
+const allSongs = ref<Song[]>([]);
 const songs = ref<Song[]>([]);
 const keyword = ref("");
+const viewMode = ref<ViewMode>("home");
+const selectedFolder = ref("");
 const loading = ref(false);
 const errorMessage = ref("");
 const showPlayerDetail = ref(false);
@@ -41,8 +46,74 @@ const currentTime = ref(0);
 const loadedDuration = ref(0);
 const volume = ref(0.72);
 
-const highlightedSongs = computed(() => songs.value.slice(0, 6));
-const libraryCount = computed(() => songs.value.length);
+const highlightedSongs = computed(() => allSongs.value.slice(0, 6));
+const folderGroups = computed(() => {
+  const groups = new Map<string, Song[]>();
+
+  for (const song of allSongs.value) {
+    const folderSongs = groups.get(song.folder) || [];
+    folderSongs.push(song);
+    groups.set(song.folder, folderSongs);
+  }
+
+  return [...groups.entries()]
+    .map(([name, folderSongs]) => ({
+      name,
+      count: folderSongs.length,
+      songs: folderSongs
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name, "zh-Hans-CN"));
+});
+const libraryCount = computed(() => allSongs.value.length);
+const heroCount = computed(() => {
+  if (viewMode.value === "library") {
+    return folderGroups.value.length;
+  }
+
+  return songs.value.length;
+});
+const heroCountLabel = computed(() => (viewMode.value === "library" ? "分类" : "当前列表"));
+const viewTitle = computed(() => {
+  if (viewMode.value === "search") {
+    return "搜索结果";
+  }
+
+  if (viewMode.value === "library") {
+    return "歌曲库";
+  }
+
+  if (viewMode.value === "folder") {
+    return selectedFolder.value;
+  }
+
+  return "推荐歌曲";
+});
+const heroTitle = computed(() => {
+  if (viewMode.value === "folder") {
+    return selectedFolder.value;
+  }
+
+  if (viewMode.value === "library") {
+    return "ClessS 歌曲库";
+  }
+
+  return "ClessS 本地音乐库";
+});
+const heroDescription = computed(() => {
+  if (viewMode.value === "search") {
+    return `正在筛选「${keyword.value.trim()}」`;
+  }
+
+  if (viewMode.value === "library") {
+    return "按本地文件夹查看各时期歌曲。";
+  }
+
+  if (viewMode.value === "folder") {
+    return `${songs.value.length} 首本地单曲`;
+  }
+
+  return "从本地文件夹读取，准备接入完整播放器。";
+});
 const playbackDuration = computed(() => loadedDuration.value || player.currentSong?.duration || 0);
 const progressPercent = computed(() => {
   if (!playbackDuration.value) {
@@ -81,7 +152,7 @@ const volumeStyle = computed(() => ({
 }));
 
 onMounted(() => {
-  void loadSongs();
+  void showHome();
   document.addEventListener("pointerdown", handleDocumentPointerDown);
 });
 
@@ -119,22 +190,110 @@ watch(volume, (nextVolume) => {
   }
 });
 
-// Search and initial loading are both backed by the server, keeping local filtering out of the UI layer.
-async function loadSongs() {
+async function showHome(forceReload = false) {
+  keyword.value = "";
+  selectedFolder.value = "";
+  viewMode.value = "home";
+  await loadAllSongs(forceReload);
+  songs.value = allSongs.value;
+}
+
+async function showLibrary(forceReload = false) {
+  keyword.value = "";
+  selectedFolder.value = "";
+  viewMode.value = "library";
+  await loadAllSongs(forceReload);
+  songs.value = [];
+}
+
+async function openFolder(folder: string) {
+  selectedFolder.value = folder;
+  viewMode.value = "folder";
+  await loadAllSongs();
+  songs.value = allSongs.value.filter((song) => song.folder === folder);
+}
+
+async function refreshCurrentView() {
+  if (viewMode.value === "search") {
+    await runSearch();
+    return;
+  }
+
+  if (viewMode.value === "library") {
+    await showLibrary(true);
+    return;
+  }
+
+  if (viewMode.value === "folder") {
+    const folder = selectedFolder.value;
+    await loadAllSongs(true);
+    await openFolder(folder);
+    return;
+  }
+
+  await showHome(true);
+}
+
+async function runSearch() {
+  const nextKeyword = keyword.value.trim();
+
+  if (!nextKeyword) {
+    await showHome();
+    return;
+  }
+
   loading.value = true;
   errorMessage.value = "";
+  selectedFolder.value = "";
+  viewMode.value = "search";
 
   try {
-    const result = keyword.value.trim()
-      ? await searchSongs(keyword.value.trim(), SONG_LIST_PAGE_SIZE)
-      : await fetchSongs(SONG_LIST_PAGE_SIZE);
-
-    songs.value = result.data;
+    songs.value = await loadSongPages({ keyword: nextKeyword });
   } catch {
     errorMessage.value = "后端服务未连接";
   } finally {
     loading.value = false;
   }
+}
+
+async function loadAllSongs(forceReload = false) {
+  if (allSongs.value.length && !forceReload) {
+    return;
+  }
+
+  loading.value = true;
+  errorMessage.value = "";
+
+  try {
+    allSongs.value = await loadSongPages();
+  } catch {
+    errorMessage.value = "后端服务未连接";
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function loadSongPages(options: { keyword?: string; folder?: string } = {}) {
+  const loadedSongs: Song[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const requestParams: SongListParams = {
+      page,
+      pageSize: REQUEST_PAGE_SIZE,
+      ...(options.folder ? { folder: options.folder } : {})
+    };
+    const result = options.keyword
+      ? await searchSongs(options.keyword, requestParams)
+      : await fetchSongs(requestParams);
+
+    loadedSongs.push(...result.data);
+    totalPages = result.pagination.totalPages || 1;
+    page += 1;
+  } while (page <= totalPages);
+
+  return loadedSongs;
 }
 
 function playSong(song: Song) {
@@ -316,11 +475,17 @@ function handleVolumeInput(event: Event) {
       </div>
 
       <nav class="nav-list" aria-label="主导航">
-        <button class="nav-item nav-item--active" type="button" title="首页">
+        <button class="nav-item" :class="{ 'nav-item--active': viewMode === 'home' }" type="button" title="首页" @click="showHome()">
           <Home :size="20" />
           <span>首页</span>
         </button>
-        <button class="nav-item" type="button" title="歌曲库">
+        <button
+          class="nav-item"
+          :class="{ 'nav-item--active': viewMode === 'library' || viewMode === 'folder' }"
+          type="button"
+          title="歌曲库"
+          @click="showLibrary()"
+        >
           <Music2 :size="20" />
           <span>歌曲库</span>
         </button>
@@ -355,9 +520,9 @@ function handleVolumeInput(event: Event) {
       <header class="topbar">
         <div class="search-box">
           <Search :size="22" />
-          <input v-model="keyword" type="search" placeholder="搜索歌曲、文件夹或歌手" @keyup.enter="loadSongs" />
+          <input v-model="keyword" type="search" placeholder="搜索歌曲、文件夹或歌手" @keyup.enter="runSearch" />
         </div>
-        <button class="primary-action" type="button" @click="loadSongs">
+        <button class="primary-action" type="button" @click="runSearch">
           <Search :size="18" />
           <span>搜索</span>
         </button>
@@ -366,30 +531,48 @@ function handleVolumeInput(event: Event) {
       <section class="hero-band">
         <div>
           <p class="eyebrow">Local Library</p>
-          <h1>ClessS 本地音乐库</h1>
-          <p>{{ keyword ? `正在筛选「${keyword}」` : "从本地文件夹读取，准备接入完整播放器。" }}</p>
+          <h1>{{ heroTitle }}</h1>
+          <p>{{ heroDescription }}</p>
         </div>
         <div class="hero-stats">
-          <span>{{ libraryCount }}</span>
-          <small>当前列表</small>
+          <span>{{ heroCount }}</span>
+          <small>{{ heroCountLabel }}</small>
         </div>
       </section>
 
       <section class="content-section">
         <div class="section-heading">
-          <h2>{{ keyword ? "搜索结果" : "推荐歌曲" }}</h2>
+          <h2>{{ viewTitle }}</h2>
           <div class="section-actions">
-            <button class="play-all-button" type="button" :disabled="!songs.length" @click="playAllSongs">
+            <button
+              v-if="viewMode !== 'library'"
+              class="play-all-button"
+              type="button"
+              :disabled="!songs.length"
+              title="最多加入 500 首"
+              @click="playAllSongs"
+            >
               <Play :size="18" fill="currentColor" />
               <span>播放全部</span>
             </button>
-            <button class="icon-button" type="button" title="刷新" @click="loadSongs">
+            <button class="icon-button" type="button" title="刷新" @click="refreshCurrentView">
               <LoaderCircle :class="{ spinning: loading }" :size="20" />
             </button>
           </div>
         </div>
 
         <div v-if="errorMessage" class="empty-state">{{ errorMessage }}</div>
+        <div v-else-if="viewMode === 'library'" class="folder-grid">
+          <button v-for="folder in folderGroups" :key="folder.name" class="folder-card" type="button" @click="openFolder(folder.name)">
+            <span class="folder-card__cover">
+              <Music2 :size="28" />
+            </span>
+            <span class="folder-card__body">
+              <strong>{{ folder.name }}</strong>
+              <small>{{ folder.count }} 首歌曲</small>
+            </span>
+          </button>
+        </div>
         <div v-else class="song-list">
           <div class="song-list__head" aria-hidden="true">
             <span>#</span>
@@ -494,7 +677,7 @@ function handleVolumeInput(event: Event) {
 
         <div class="queue-panel__hint">
           <span>荐</span>
-          <p>当前列表会从所点击歌曲开始顺序播放</p>
+          <p>当前播放列表最多保留 500 首</p>
         </div>
 
         <div v-if="player.queue.length" class="queue-list">
