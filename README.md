@@ -1,41 +1,41 @@
 # ClessS Music Player
 
-ClessS Music Player 是一个前后端分离的本地音乐播放器项目。第一阶段目标是在本机读取本地歌曲文件，提供可搜索、可播放、可切歌、可查看播放列表的播放器 Demo；后续阶段会继续补齐收藏、管理后台，并迁移到云端部署和云端歌曲存储。
+ClessS Music Player 是一个前后端分离的本地音乐播放器。第一阶段目标是在本机稳定读取本地歌曲文件，提供搜索、播放、切歌、收藏、歌曲库分类和管理员歌曲管理能力；第二阶段再迁移到云服务器、云数据库和云端歌曲存储。
 
-当前仓库只保存项目代码和必要配置模板，不保存歌曲文件、数据库内容、`.env`、`node_modules`、构建产物等本地或大体积文件。
+当前仓库只保存项目代码、文档和必要配置模板，不保存歌曲文件、数据库数据、`.env`、`node_modules`、构建产物或其他大体积本地文件。
 
-## 当前进度
+## 阶段状态
 
-已完成：
+第一阶段本地 Demo 已基本完成。
 
-- 技术规划文档：[播放器技术文档.md](播放器技术文档.md)
-- Git 仓库初始化，并已推送到 GitHub 私有仓库。
-- 后端基础服务：Express + TypeScript + Prisma + MySQL。
-- 后端接口：健康检查、歌曲列表、歌曲搜索、按 Range 返回音频流。
-- 本地歌曲扫描：从 `MUSIC_ROOT` 下的歌曲文件夹扫描音频文件并写入 MySQL。
-- 前端基础工程：Vue 3 + Vite + TypeScript + Pinia。
-- 首页 UI：白底、红色按钮元素、左侧导航、歌曲列表、播放条。
-- 播放功能：播放、暂停、上一首、下一首、结束后自动切歌、进度显示、点击进度条跳转。
-- 播放队列：点击歌曲后自动从当前歌曲开始生成后续播放列表，播放队列上限为 500 首。
+已实现：
+
+- 用户侧歌曲搜索、播放、暂停、上一首、下一首。
+- 播放队列：点击歌曲后自动从当前歌曲起生成后续队列，队列上限 500 首。
 - 播放模式：列表循环、单曲循环、随机播放。
-- 音量控制。
-- 搜索：搜索歌曲、文件夹或歌手；点击“首页”可回到主页。
-- 播放全部：可将当前列表最多 500 首加入播放队列。
-- 歌曲库：按本地文件夹分类展示，例如 `ClessS 21上`、`ClessS 21下`、`ClessS古早`，进入分类后可播放该分类歌曲。
-- 收藏功能：支持收藏、取消收藏、进入收藏页查看收藏列表，并可对收藏列表播放全部。
-- 管理员登录：顶部“未登录”入口可选择管理员登录，登录成功后进入管理员后台；普通用户登录暂未开放。
-- 管理员上传：后台支持上传 `.mp3`，可选择加入已有歌单，也可输入名称新建歌单。
-- 管理员删除：后台支持搜索、按歌单筛选并软删除歌曲；删除后普通歌曲列表、搜索、收藏页和播放入口不再展示该歌曲。
-- README 和代码注释已进行基础整理。
+- 播放进度条、音量调节、播放详情页、黑胶唱片旋转效果。
+- 歌曲库：按本地文件夹分类展示，例如 `ClessS 21上`、`ClessS 21下`。
+- 收藏页：收藏、取消收藏、查看收藏列表、收藏列表播放全部。
+- 管理员登录：顶部登录入口进入管理员后台。
+- 管理员新增歌曲：上传 `.mp3`，可加入已有歌单或新建歌单。
+- 管理员删除歌曲：支持搜索、按歌单筛选并软删除；软删除后普通列表、搜索、收藏页和播放入口不再展示。
+- 本地 MySQL 数据建模、本地歌曲扫描、Range 音频流播放。
 
-待完成：
+第 12 步本地联调检查结果：
 
-- 管理员后台的批量操作、恢复软删除等体验优化。
-- 更完整的错误提示、加载态和空状态。
-- 更正式的接口文档。
-- 生产部署方案：云服务器、云数据库、云端对象存储或文件存储。
-- 桌面端封装方案评估，例如 Electron、Tauri 或 PWA。
-- 移动端完整适配。目前只有基础响应式样式，暂不作为重点。
+- `pnpm client:build` 通过。
+- `pnpm server:build` 通过。
+- `GET /api/health` 返回 `ok`。
+- `GET /api/songs?page=1&pageSize=1` 可返回歌曲数据。
+- 管理员登录和 `GET /api/admin/songs` 可正常访问。
+
+待后续阶段处理：
+
+- 云服务器部署、域名、HTTPS、进程守护和反向代理。
+- 云数据库、云端歌曲存储或对象存储迁移。
+- 更正式的用户系统与权限模型。
+- 管理员批量操作、软删除恢复、审计日志等后台增强。
+- 移动端完整适配和桌面端封装评估。
 
 ## 技术栈
 
@@ -45,8 +45,8 @@ ClessS Music Player 是一个前后端分离的本地音乐播放器项目。第
 - Vite
 - TypeScript
 - Pinia
-- lucide-vue-next
 - Axios
+- lucide-vue-next
 
 后端：
 
@@ -56,106 +56,102 @@ ClessS Music Player 是一个前后端分离的本地音乐播放器项目。第
 - Prisma
 - MySQL
 - music-metadata
+- multer
 
-本地开发工具：
+开发与协作：
 
 - pnpm
 - Git
 - VS Code
+
+## 系统架构
+
+```text
+Browser
+  |
+  |  Vite dev proxy or production reverse proxy
+  v
+Vue Client  <---- /api ---->  Express API  <---->  MySQL
+                                  |
+                                  v
+                           MUSIC_ROOT local songs
+```
+
+第一阶段歌曲文件保存在本地 `MUSIC_ROOT` 下，后端扫描本地目录并把歌曲元数据写入 MySQL。音频播放时，前端请求后端 `stream` 接口，后端按 Range 返回本地 MP3 文件流。
 
 ## 目录结构
 
 ```text
 D:\ClessS
   music-player-app/
-    client/                 前端 Vue 项目
-    server/                 后端 Express 项目
-    docs/                   后续接口、部署等补充文档目录
+    client/                 前端 Vue 3 应用
+    server/                 后端 Express 应用
+    docs/                   接口、部署、迁移等补充文档
     package.json            前后端统一脚本入口
-  ClessS 21上/              本地歌曲目录，未提交到 Git
-  ClessS 21下/              本地歌曲目录，未提交到 Git
-  ClessS 22上/              本地歌曲目录，未提交到 Git
+  ClessS 21上/              本地歌曲目录，未提交 Git
+  ClessS 21下/              本地歌曲目录，未提交 Git
+  ClessS 22上/              本地歌曲目录，未提交 Git
   ...
-  .env.example              环境变量模板
+  .env.example              本地环境变量模板
   .gitignore
   README.md
   播放器技术文档.md
 ```
 
-## 本地运行前提
+## 环境变量
 
-需要先准备：
+复制 `.env.example` 为 `.env`，根据本机 MySQL 和歌曲目录修改。
+
+```powershell
+Copy-Item .env.example .env
+```
+
+| 变量 | 说明 | 本地默认 |
+| --- | --- | --- |
+| `NODE_ENV` | 运行环境 | `development` |
+| `CLIENT_PORT` | 前端开发端口 | `5173` |
+| `SERVER_PORT` | 后端服务端口 | `3000` |
+| `CLIENT_ORIGIN` | 允许访问 API 的前端源 | `http://localhost:5173` |
+| `MYSQL_HOST` | MySQL 主机 | `127.0.0.1` |
+| `MYSQL_PORT` | MySQL 端口 | `3306` |
+| `MYSQL_USER` | MySQL 用户 | `root` |
+| `MYSQL_PASSWORD` | MySQL 密码 | 需自行填写 |
+| `MYSQL_DATABASE` | MySQL 数据库名 | `clesss_music_player` |
+| `DATABASE_URL` | Prisma 数据库连接串 | 可直接覆盖 `MYSQL_*` |
+| `MUSIC_ROOT` | 本地歌曲根目录 | `D:\ClessS` |
+| `UPLOAD_FOLDER` | 默认上传歌单名 | `ClessS 本地上传` |
+| `ADMIN_PASSWORD` | 管理员密码 | 需自行填写 |
+| `ADMIN_TOKEN_SECRET` | 管理员 token 签名密钥 | 需自行填写 |
+
+后端按以下顺序读取环境变量，越靠前优先级越高：
+
+1. `music-player-app/server/.env`
+2. `music-player-app/.env`
+3. 仓库根目录 `.env`
+
+## 本地启动
+
+准备条件：
 
 - Node.js
 - pnpm
 - MySQL
 - 本地歌曲文件夹
 
-当前开发环境约定：
-
-- 前端地址：`http://localhost:5173`
-- 后端地址：`http://localhost:3000`
-- 数据库：MySQL
-- 歌曲根目录：默认使用仓库根目录 `D:\ClessS`
-
-## 环境变量
-
-复制 `.env.example` 为 `.env`，并根据本机 MySQL 配置修改：
-
-```powershell
-Copy-Item .env.example .env
-```
-
-关键配置示例：
-
-```env
-NODE_ENV=development
-
-CLIENT_PORT=5173
-SERVER_PORT=3000
-CLIENT_ORIGIN=http://localhost:5173
-
-MYSQL_HOST=127.0.0.1
-MYSQL_PORT=3306
-MYSQL_USER=root
-MYSQL_PASSWORD=change-this-password
-MYSQL_DATABASE=clesss_music_player
-DATABASE_URL="mysql://root:change-this-password@127.0.0.1:3306/clesss_music_player"
-
-MUSIC_ROOT="D:\\ClessS"
-UPLOAD_FOLDER="ClessS 本地上传"
-
-ADMIN_PASSWORD=change-this-admin-password
-ADMIN_TOKEN_SECRET=change-this-token-secret
-```
-
-后端会按以下顺序读取环境变量：
-
-1. `music-player-app/server/.env`
-2. `music-player-app/.env`
-3. 仓库根目录 `.env`
-
-目前本地开发通常使用仓库根目录的 `.env` 即可。
-
-## 安装依赖
-
-进入应用目录：
+进入应用目录并安装依赖：
 
 ```powershell
 cd D:\ClessS\music-player-app
-```
-
-安装依赖：
-
-```powershell
 pnpm install
 ```
 
-## 初始化数据库
+创建数据库：
 
-确保 MySQL 已启动，并且 `.env` 中的数据库账号密码正确。
+```sql
+CREATE DATABASE clesss_music_player CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
-进入后端目录执行 Prisma：
+初始化 Prisma：
 
 ```powershell
 cd D:\ClessS\music-player-app\server
@@ -163,56 +159,36 @@ pnpm prisma:generate
 pnpm prisma:push
 ```
 
-如果数据库不存在，需要先在 MySQL 中创建：
-
-```sql
-CREATE DATABASE clesss_music_player CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-## 扫描本地歌曲
-
-扫描 `MUSIC_ROOT` 下的本地歌曲文件并写入数据库：
+扫描本地歌曲：
 
 ```powershell
 cd D:\ClessS\music-player-app\server
 pnpm songs:scan
 ```
 
-当前已验证本地库约有 4856 首歌曲。首页和搜索结果会分批加载完整歌曲列表；播放队列仍限制为最多 500 首，避免一次性把过多歌曲塞入播放器状态。
-
-## 启动开发服务
-
-开发时建议打开两个终端。
-
-终端一，启动后端：
+启动后端：
 
 ```powershell
 cd D:\ClessS\music-player-app
 pnpm server:dev
 ```
 
-终端二，启动前端：
+启动前端：
 
 ```powershell
 cd D:\ClessS\music-player-app
 pnpm client:dev
 ```
 
-浏览器打开：
+浏览器访问：
 
 ```text
 http://localhost:5173
 ```
 
-关闭服务时，在对应终端按：
+关闭服务时，在对应终端按 `Ctrl + C`。如果终端询问是否终止批处理，输入 `Y` 后回车。
 
-```text
-Ctrl + C
-```
-
-如果终端询问是否终止批处理，输入 `Y` 后回车。
-
-## 构建检查
+## 构建与运行
 
 前端构建：
 
@@ -236,45 +212,50 @@ pnpm server:build
 pnpm --dir server start
 ```
 
-## 常用接口
+生产环境建议将 `client/dist` 作为静态站点交给 Nginx、Caddy 或平台静态托管服务，并把 `/api` 反向代理到后端 Express 服务。
 
-健康检查：
+## 主要接口
+
+公开接口：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `GET` | `/api/health` | 健康检查 |
+| `GET` | `/api/songs?page=&pageSize=&folder=` | 歌曲列表 |
+| `GET` | `/api/songs/search?keyword=&page=&pageSize=` | 歌曲搜索 |
+| `GET` | `/api/songs/:id/stream` | 音频流，支持 Range |
+| `GET` | `/api/favorites` | 收藏列表 |
+| `POST` | `/api/favorites/:songId` | 添加收藏 |
+| `DELETE` | `/api/favorites/:songId` | 取消收藏 |
+
+管理员接口：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `POST` | `/api/admin/login` | 管理员登录 |
+| `GET` | `/api/admin/me` | 校验管理员会话 |
+| `GET` | `/api/admin/songs?page=&pageSize=&keyword=&folder=` | 管理端歌曲列表 |
+| `POST` | `/api/admin/songs` | 上传 `.mp3` 歌曲 |
+| `DELETE` | `/api/admin/songs/:id` | 软删除歌曲 |
+
+管理员接口除登录外均需要请求头：
 
 ```text
-GET http://localhost:3000/api/health
+Authorization: Bearer <admin-token>
 ```
 
-歌曲列表：
+## 数据与文件策略
 
-```text
-GET http://localhost:3000/api/songs?page=1&pageSize=500
-```
-
-歌曲搜索：
-
-```text
-GET http://localhost:3000/api/songs/search?keyword=关键词&page=1&pageSize=500
-```
-
-音频播放：
-
-```text
-GET http://localhost:3000/api/songs/:id/stream
-```
-
-音频流接口支持 `Range` 请求，浏览器音频播放、拖动进度条会依赖这个能力。
-
-## 当前使用限制
-
-- 这是本地开发版，不是公网可访问的正式产品。
-- 其他人从 GitHub 拉取仓库后，只能获得代码，不能获得你的本地歌曲、`.env`、MySQL 数据库内容。
-- 其他人若要本地运行，需要自行配置 MySQL、准备歌曲文件夹、运行扫描脚本。
-- 真正的多人访问和跨设备访问，需要等后续云端部署、云端数据库和云端歌曲存储完成。
-- 当前歌曲列表直接渲染完整列表。约 5000 首歌曲阶段可以先使用；如果数量继续增长或出现明显卡顿，后续应改为虚拟滚动。
+- `songs` 表保存歌曲元数据和本地文件路径。
+- `favorites` 表保存第一阶段单用户收藏数据。
+- 管理员删除歌曲采用软删除，只更新 `isDeleted = true`，不物理删除 MP3。
+- 本地扫描不会自动恢复管理员软删除的歌曲，避免删除后又被重新显示。
+- 上传歌曲写入 `MUSIC_ROOT/<folder>`，并同步写入数据库。
+- 当前播放接口只支持本地文件；云端阶段需要替换为对象存储或云文件地址。
 
 ## Git 约定
 
-建议提交代码前执行：
+提交前建议执行：
 
 ```powershell
 cd D:\ClessS\music-player-app
@@ -289,12 +270,30 @@ pnpm server:build
 - `dist`
 - 本地歌曲文件夹
 - 大体积音频文件
+- 本地数据库导出或运行数据
 
-## 下一步计划
+当前 GitHub 仓库：
 
-推荐下一步继续做本地 Demo 的联调和管理体验完善：
+```text
+https://github.com/junz613/clesss-music-player
+```
 
-1. 人工体验管理员上传、删除、搜索、收藏和播放队列的完整链路。
-2. 补充更正式的接口说明，方便后续部署和前后端排错。
-3. 评估管理员恢复软删除、批量删除等后台功能是否进入第一阶段。
-4. 整理第一阶段部署前的环境变量、MySQL、歌曲目录迁移清单。
+## 部署前检查清单
+
+进入服务器部署分支前，需要确认：
+
+- 已确定服务器系统、Node.js 版本、pnpm 安装方式。
+- 已确定 MySQL 部署方式：同机 MySQL、云数据库或 Docker MySQL。
+- 已确定歌曲存储方式：服务器磁盘、挂载盘、对象存储或后续云存储。
+- 已准备生产环境 `DATABASE_URL`、`MUSIC_ROOT`、`CLIENT_ORIGIN`、`ADMIN_PASSWORD`、`ADMIN_TOKEN_SECRET`。
+- 已确定前端静态文件托管方式和 `/api` 反向代理规则。
+- 已确定后端进程守护方式：PM2、systemd、Docker 或云平台运行时。
+- 已确定备份方案：MySQL 备份、歌曲文件备份、上传目录备份。
+
+## 当前限制
+
+- 这是本地开发版，不是公网正式产品。
+- 其他人从 GitHub 拉取后只能获得代码，不能获得你的歌曲、`.env` 或 MySQL 数据。
+- 如果他人需要本地运行，需要自行配置 MySQL、准备歌曲文件夹并执行扫描。
+- 当前约 5000 首歌曲可用；如果未来数量明显增加，歌曲列表应改为虚拟滚动或服务端分页浏览。
+- 移动端只有基础响应式处理，暂不作为第一阶段重点。
