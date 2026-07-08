@@ -466,6 +466,12 @@ async function toggleFavorite(song: Song) {
   }
 }
 
+function toggleCurrentFavorite() {
+  if (player.currentSong) {
+    void toggleFavorite(player.currentSong);
+  }
+}
+
 function syncFavoriteViewSongs() {
   if (viewMode.value === "favorites") {
     songs.value = favoriteSongs.value;
@@ -903,19 +909,35 @@ function handleVolumeInput(event: Event) {
         </button>
       </div>
 
-      <div class="volume-zone">
-        <Volume2 :size="22" />
-        <input
-          class="volume-slider"
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          :value="volume"
-          :style="volumeStyle"
-          aria-label="音量"
-          @input="handleVolumeInput"
-        />
+      <div class="player-tools">
+        <button
+          class="icon-button"
+          :class="{ 'icon-button--active': player.currentSong && isFavorite(player.currentSong.id) }"
+          type="button"
+          :disabled="!player.currentSong"
+          :title="player.currentSong && isFavorite(player.currentSong.id) ? '取消收藏当前歌曲' : '收藏当前歌曲'"
+          @click="toggleCurrentFavorite"
+        >
+          <Heart
+            :size="22"
+            :fill="player.currentSong && isFavorite(player.currentSong.id) ? 'currentColor' : 'none'"
+          />
+        </button>
+
+        <div class="volume-zone">
+          <Volume2 :size="22" />
+          <input
+            class="volume-slider"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            :value="volume"
+            :style="volumeStyle"
+            aria-label="音量"
+            @input="handleVolumeInput"
+          />
+        </div>
       </div>
 
       <audio
