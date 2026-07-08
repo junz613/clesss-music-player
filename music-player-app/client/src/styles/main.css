@@ -349,7 +349,7 @@ button {
   align-items: center;
   gap: 86px;
   min-height: 0;
-  padding: 72px 10vw 136px;
+  padding: 46px 13vw 156px 7vw;
   background: #fff;
 }
 
@@ -359,6 +359,12 @@ button {
   place-items: center;
   min-height: 520px;
   --record-size: clamp(320px, 31vw, 430px);
+  --tonearm-angle: -16deg;
+  --tonearm-scale: 1;
+}
+
+.record-stage--playing {
+  --tonearm-angle: 6deg;
 }
 
 .record {
@@ -401,99 +407,23 @@ button {
 
 .tonearm {
   position: absolute;
-  top: calc(50% - var(--record-size) / 2 - 96px);
-  left: calc(50% + var(--record-size) * 0.08);
+  top: calc(50% - var(--record-size) / 2 - 92px);
+  left: calc(50% - var(--record-size) * 0.46);
   z-index: 2;
-  width: 286px;
-  height: 210px;
+  width: clamp(300px, 30vw, 410px);
+  aspect-ratio: 616 / 339;
   pointer-events: none;
+  transform: scale(var(--tonearm-scale)) rotate(var(--tonearm-angle));
+  transform-origin: 10.8% 17.4%;
+  transition: transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.tonearm__pivot {
-  position: absolute;
-  top: 10px;
-  left: 0;
-  z-index: 2;
-  width: 48px;
-  height: 48px;
-  background: #fff;
-  border: 11px solid #e6ebf4;
-  border-radius: 50%;
-  box-shadow: 0 10px 22px rgb(39 49 73 / 12%);
-}
-
-.tonearm__pivot::after {
-  position: absolute;
-  inset: 7px;
-  content: "";
-  background: #fff;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1px #eef1f6;
-}
-
-.tonearm__arm {
-  position: absolute;
-  top: 33px;
-  left: 31px;
-  width: 254px;
-  height: 108px;
-  transform: rotate(-8deg);
-  transform-origin: 0 0;
-  transition: transform 720ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.record-stage--playing .tonearm__arm {
-  transform: rotate(23deg);
-}
-
-.tonearm__bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 198px;
-  height: 14px;
-  background: #eef2f7;
-  border-radius: 999px;
-  box-shadow: 0 2px 0 rgb(255 255 255 / 70%) inset;
-  transform: rotate(39deg);
-  transform-origin: left center;
-}
-
-.tonearm__bar::after {
-  position: absolute;
-  right: -56px;
-  bottom: -58px;
-  width: 72px;
-  height: 12px;
-  content: "";
-  background: #eef2f7;
-  border-radius: 999px;
-  transform: rotate(-28deg);
-  transform-origin: left center;
-}
-
-.tonearm__head {
-  position: absolute;
-  right: -2px;
-  bottom: 0;
-  width: 48px;
-  height: 34px;
-  background: #fff;
-  border: 1px solid #e4e9f2;
-  border-radius: 8px;
-  box-shadow: 0 8px 18px rgb(39 49 73 / 10%);
-  transform: rotate(5deg);
-}
-
-.tonearm__head::after {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  width: 18px;
-  height: 3px;
-  content: "";
-  background: #dfe5ee;
-  border-radius: 999px;
+.tonearm__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgb(39 49 73 / 10%));
 }
 
 .track-panel {
@@ -1328,6 +1258,7 @@ button {
   .record-stage {
     min-height: 360px;
     --record-size: min(76vw, 330px);
+    --tonearm-scale: 0.72;
   }
 
   .record {
@@ -1335,10 +1266,9 @@ button {
   }
 
   .tonearm {
-    top: calc(50% - var(--record-size) / 2 - 62px);
-    left: calc(50% + var(--record-size) * 0.02);
-    transform: scale(0.72);
-    transform-origin: top left;
+    top: calc(50% - var(--record-size) / 2 - 56px);
+    left: calc(50% - var(--record-size) * 0.52);
+    width: clamp(270px, 74vw, 330px);
   }
 
   .player-bar {

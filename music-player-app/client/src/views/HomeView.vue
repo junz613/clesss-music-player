@@ -30,6 +30,7 @@ import logoUrl from "../assets/clesss-logo.jpg";
 import listLoopIconUrl from "../assets/player/play-mode-list-loop.png";
 import randomIconUrl from "../assets/player/play-mode-random.png";
 import singleLoopIconUrl from "../assets/player/play-mode-single-loop.png";
+import tonearmUrl from "../assets/player/tonearm.png";
 import { usePlayerStore } from "../stores/player";
 
 type ViewMode = "home" | "search" | "library" | "folder" | "favorites";
@@ -788,11 +789,7 @@ function handleVolumeInput(event: Event) {
       <div class="detail-stage">
         <div class="record-stage" :class="{ 'record-stage--playing': player.isPlaying }">
           <div class="tonearm" aria-hidden="true">
-            <span class="tonearm__pivot"></span>
-            <span class="tonearm__arm">
-              <span class="tonearm__bar"></span>
-              <span class="tonearm__head"></span>
-            </span>
+            <img class="tonearm__image" :src="tonearmUrl" alt="" />
           </div>
           <div class="record">
             <div class="record__ring">
