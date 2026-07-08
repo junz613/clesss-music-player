@@ -37,6 +37,12 @@ export type SongScanResult = SongScanStats & {
   }>;
 };
 
+export type UpsertSongFileResult = {
+  songId: string;
+  created: boolean;
+  restored: boolean;
+};
+
 type SongMetadata = {
   title: string;
   artist: string | null;
@@ -126,6 +132,45 @@ export async function scanLocalSongs(musicRoot = env.musicRoot): Promise<SongSca
   }
 
   return result;
+}
+
+export async function upsertSongFile(filePath: string, musicRoot = env.musicRoot): Promise<UpsertSongFileResult> {
+  const resolvedMusicRoot = path.resolve(musicRoot);
+  const resolvedFilePath = path.resolve(filePath);
+  const fileRecord = await buildSongRecord(resolvedMusicRoot, resolvedFilePath);
+  const existingSong = await prisma.song.findUnique({
+    where: { fileKey: fileRecord.fileKey },
+    select: { id: true, isDeleted: true }
+  });
+
+  if (existingSong) {
+    await prisma.song.update({
+      where: { id: existingSong.id },
+      data: {
+        ...fileRecord,
+        isDeleted: false
+      }
+    });
+
+    return {
+      songId: existingSong.id,
+      created: false,
+      restored: existingSong.isDeleted
+    };
+  }
+
+  const song = await prisma.song.create({
+    data: fileRecord,
+    select: {
+      id: true
+    }
+  });
+
+  return {
+    songId: song.id,
+    created: true,
+    restored: false
+  };
 }
 
 // 递归发现音频文件，保持排序稳定，便于扫描结果可预测。

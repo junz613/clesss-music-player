@@ -16,11 +16,12 @@ import {
   SkipBack,
   SkipForward,
   Trash2,
+  Upload,
   UserRound,
   Volume2
 } from "lucide-vue-next";
 
-import { fetchAdminSession, loginAdmin } from "../api/admin";
+import { fetchAdminSession, loginAdmin, uploadAdminSong } from "../api/admin";
 import {
   addFavoriteSong,
   fetchFavoriteSongs,
@@ -72,6 +73,14 @@ const loginDialogMode = ref<"admin" | "user">("admin");
 const adminPassword = ref("");
 const adminLoginError = ref("");
 const adminLoginLoading = ref(false);
+const uploadMode = ref<"existing" | "new">("existing");
+const selectedUploadFolder = ref("");
+const newUploadFolder = ref("");
+const selectedUploadFile = ref<File | null>(null);
+const uploadInputRef = ref<HTMLInputElement | null>(null);
+const uploadError = ref("");
+const uploadSuccess = ref("");
+const uploadLoading = ref(false);
 
 const highlightedSongs = computed(() => allSongs.value.slice(0, 6));
 const adminLoggedIn = computed(() => Boolean(adminToken.value));
@@ -92,6 +101,14 @@ const folderGroups = computed(() => {
       songs: folderSongs
     }))
     .sort((left, right) => left.name.localeCompare(right.name, "zh-Hans-CN"));
+});
+const uploadFolderOptions = computed(() => folderGroups.value.map((folder) => folder.name));
+const uploadTargetFolder = computed(() => {
+  if (uploadMode.value === "new") {
+    return newUploadFolder.value.trim();
+  }
+
+  return selectedUploadFolder.value || uploadFolderOptions.value[0] || "";
 });
 const libraryCount = computed(() => allSongs.value.length);
 const heroCount = computed(() => {
@@ -402,6 +419,72 @@ function showAdmin() {
 
   viewMode.value = "admin";
   songs.value = [];
+  uploadError.value = "";
+  void ensureUploadFolders();
+}
+
+async function ensureUploadFolders() {
+  await loadAllSongs();
+
+  if (!selectedUploadFolder.value && uploadFolderOptions.value.length) {
+    selectedUploadFolder.value = uploadFolderOptions.value[0];
+  }
+}
+
+function handleUploadFileChange(event: Event) {
+  const target = event.target as HTMLInputElement;
+  selectedUploadFile.value = target.files?.[0] || null;
+  uploadError.value = "";
+  uploadSuccess.value = "";
+}
+
+async function submitSongUpload() {
+  if (!adminToken.value) {
+    openAdminLogin();
+    return;
+  }
+
+  if (!selectedUploadFile.value) {
+    uploadError.value = "请选择 MP3 文件";
+    return;
+  }
+
+  if (!selectedUploadFile.value.name.toLowerCase().endsWith(".mp3")) {
+    uploadError.value = "目前只支持上传 .mp3 文件";
+    return;
+  }
+
+  const folder = uploadTargetFolder.value;
+
+  if (!folder) {
+    uploadError.value = "请选择歌单或输入新歌单名称";
+    return;
+  }
+
+  uploadLoading.value = true;
+  uploadError.value = "";
+  uploadSuccess.value = "";
+
+  try {
+    const result = await uploadAdminSong(adminToken.value, {
+      file: selectedUploadFile.value,
+      folder
+    });
+
+    uploadSuccess.value = `已上传：${result.data.title}`;
+    selectedUploadFile.value = null;
+    if (uploadInputRef.value) {
+      uploadInputRef.value.value = "";
+    }
+    await loadAllSongs(true);
+    selectedUploadFolder.value = folder;
+    newUploadFolder.value = "";
+    uploadMode.value = "existing";
+  } catch {
+    uploadError.value = "上传失败，请确认管理员登录状态和文件格式";
+  } finally {
+    uploadLoading.value = false;
+  }
 }
 
 async function openFolder(folder: string) {
@@ -915,11 +998,11 @@ function handleVolumeInput(event: Event) {
 
           <section class="admin-card">
             <span class="admin-card__icon">
-              <Music2 :size="26" />
+              <Upload :size="26" />
             </span>
             <div>
               <strong>新增歌曲</strong>
-              <small>第 10 步接入上传</small>
+              <small>选择已有歌单或新建歌单</small>
             </div>
           </section>
 
@@ -943,6 +1026,58 @@ function handleVolumeInput(event: Event) {
               <span>退出登录</span>
             </button>
           </div>
+
+          <form class="admin-upload" @submit.prevent="submitSongUpload">
+            <div class="admin-upload__header">
+              <div>
+                <strong>上传歌曲</strong>
+                <small>仅支持 .mp3，上传后会写入所选歌单并刷新歌曲库</small>
+              </div>
+              <span>{{ uploadTargetFolder || "未选择歌单" }}</span>
+            </div>
+
+            <div class="upload-mode">
+              <label :class="{ 'upload-mode__item--active': uploadMode === 'existing' }">
+                <input v-model="uploadMode" type="radio" value="existing" />
+                <span>加入已有歌单</span>
+              </label>
+              <label :class="{ 'upload-mode__item--active': uploadMode === 'new' }">
+                <input v-model="uploadMode" type="radio" value="new" />
+                <span>新建歌单</span>
+              </label>
+            </div>
+
+            <div class="upload-grid">
+              <label class="upload-field" v-if="uploadMode === 'existing'">
+                <span>目标歌单</span>
+                <select v-model="selectedUploadFolder">
+                  <option v-if="!uploadFolderOptions.length" value="">暂无可选歌单</option>
+                  <option v-for="folder in uploadFolderOptions" :key="folder" :value="folder">
+                    {{ folder }}
+                  </option>
+                </select>
+              </label>
+
+              <label class="upload-field" v-else>
+                <span>新歌单名称</span>
+                <input v-model="newUploadFolder" type="text" placeholder="例如 ClessS 26上" />
+              </label>
+
+              <label class="upload-field">
+                <span>歌曲文件</span>
+                <input ref="uploadInputRef" type="file" accept=".mp3,audio/mpeg" @change="handleUploadFileChange" />
+              </label>
+            </div>
+
+            <p v-if="selectedUploadFile" class="upload-file-name">{{ selectedUploadFile.name }}</p>
+            <p v-if="uploadError" class="login-error">{{ uploadError }}</p>
+            <p v-if="uploadSuccess" class="upload-success">{{ uploadSuccess }}</p>
+
+            <button class="primary-action" type="submit" :disabled="uploadLoading">
+              <Upload :size="18" />
+              <span>{{ uploadLoading ? "上传中" : "上传歌曲" }}</span>
+            </button>
+          </form>
         </div>
         <div v-else-if="viewMode === 'library'" class="folder-grid">
           <button v-for="folder in folderGroups" :key="folder.name" class="folder-card" type="button" @click="openFolder(folder.name)">

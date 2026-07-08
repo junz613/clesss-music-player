@@ -293,6 +293,7 @@ button {
 .auth-control {
   position: relative;
   flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .auth-button {
@@ -907,6 +908,132 @@ button {
   margin-top: 4px;
 }
 
+.admin-upload {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 16px;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #e7ebf4;
+  border-radius: 8px;
+  box-shadow: 0 14px 34px rgb(39 49 73 / 7%);
+}
+
+.admin-upload__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-upload__header strong,
+.admin-upload__header small {
+  display: block;
+}
+
+.admin-upload__header strong {
+  font-size: 18px;
+}
+
+.admin-upload__header small {
+  margin-top: 6px;
+  color: #7b8494;
+}
+
+.admin-upload__header > span {
+  min-width: 128px;
+  padding: 9px 12px;
+  overflow: hidden;
+  color: #ec223b;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: #fff0f3;
+  border-radius: 8px;
+}
+
+.upload-mode {
+  display: inline-flex;
+  width: fit-content;
+  padding: 4px;
+  background: #f3f5f9;
+  border-radius: 8px;
+}
+
+.upload-mode label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 132px;
+  height: 36px;
+  padding: 0 14px;
+  color: #7b8494;
+  font-weight: 800;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.upload-mode input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.upload-mode__item--active {
+  color: #fff !important;
+  background: #ff3d57;
+}
+
+.upload-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.upload-field {
+  display: grid;
+  gap: 8px;
+  color: #6f798b;
+  font-weight: 800;
+}
+
+.upload-field input,
+.upload-field select {
+  height: 46px;
+  min-width: 0;
+  padding: 0 14px;
+  color: #273149;
+  background: #fff;
+  border: 1px solid #e1e6f0;
+  border-radius: 8px;
+  outline: 0;
+}
+
+.upload-field input[type="file"] {
+  padding: 10px 12px;
+}
+
+.upload-field input:focus,
+.upload-field select:focus {
+  border-color: #ff9cad;
+  box-shadow: 0 0 0 4px rgb(255 61 87 / 10%);
+}
+
+.upload-file-name,
+.upload-success {
+  margin: 0;
+}
+
+.upload-file-name {
+  color: #7b8494;
+}
+
+.upload-success {
+  color: #1f9d63;
+  font-weight: 800;
+}
+
 .login-modal {
   position: fixed;
   inset: 0;
@@ -1400,6 +1527,10 @@ button {
   .admin-panel {
     grid-template-columns: repeat(2, minmax(180px, 1fr));
   }
+
+  .upload-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -1477,6 +1608,10 @@ button {
     width: 100%;
   }
 
+  .auth-control {
+    margin-left: 0;
+  }
+
   .auth-menu {
     right: auto;
     left: 0;
@@ -1485,6 +1620,17 @@ button {
 
   .admin-panel {
     grid-template-columns: 1fr;
+  }
+
+  .admin-upload__header,
+  .admin-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .upload-mode,
+  .upload-mode label {
+    width: 100%;
   }
 
   .hero-stats {

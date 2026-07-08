@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 
 import { env } from "../config/env.js";
+import { readBearerToken } from "../middlewares/adminAuth.js";
 import { createAdminToken, verifyAdminPassword, verifyAdminToken } from "../services/adminToken.js";
 
 export async function loginAdmin(request: Request, response: Response, next: NextFunction) {
@@ -50,14 +51,4 @@ export async function getAdminSession(request: Request, response: Response, next
   } catch (error) {
     next(error);
   }
-}
-
-function readBearerToken(request: Request) {
-  const header = request.headers.authorization;
-
-  if (!header?.startsWith("Bearer ")) {
-    return "";
-  }
-
-  return header.slice("Bearer ".length).trim();
 }
