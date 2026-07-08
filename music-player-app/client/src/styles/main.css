@@ -49,7 +49,8 @@ button {
   flex-direction: column;
   gap: 28px;
   padding: 28px 24px 18px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: #eef2f8;
   border-right: 1px solid #e4e8f0;
 }
@@ -119,8 +120,7 @@ button {
 }
 
 .library-panel {
-  min-height: 0;
-  overflow: hidden;
+  min-height: auto;
 }
 
 .panel-title,
@@ -140,8 +140,6 @@ button {
 .playlist-list {
   display: grid;
   gap: 12px;
-  max-height: calc(100vh - 310px);
-  overflow: auto;
   padding-right: 4px;
 }
 
@@ -318,8 +316,8 @@ button {
   position: fixed;
   inset: 0;
   z-index: 20;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) 106px;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: #fff;
 }
 
@@ -348,7 +346,7 @@ button {
   grid-template-columns: minmax(340px, 0.85fr) minmax(360px, 1fr);
   align-items: center;
   gap: 86px;
-  min-height: 0;
+  min-height: calc(100vh - 106px);
   padding: 46px 13vw 156px 7vw;
   background: #fff;
 }
@@ -407,8 +405,8 @@ button {
 
 .tonearm {
   position: absolute;
-  top: calc(50% - var(--record-size) / 2 - 92px);
-  left: calc(50% - var(--record-size) * 0.46);
+  top: calc(50% - var(--record-size) / 2 - 102px);
+  left: calc(50% - var(--record-size) * 0.46 - 10px);
   z-index: 2;
   width: clamp(300px, 30vw, 410px);
   aspect-ratio: 616 / 339;
@@ -1266,8 +1264,8 @@ button {
   }
 
   .tonearm {
-    top: calc(50% - var(--record-size) / 2 - 56px);
-    left: calc(50% - var(--record-size) * 0.52);
+    top: calc(50% - var(--record-size) / 2 - 66px);
+    left: calc(50% - var(--record-size) * 0.52 - 10px);
     width: clamp(270px, 74vw, 330px);
   }
 
