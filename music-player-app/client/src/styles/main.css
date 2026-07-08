@@ -93,6 +93,8 @@ button {
 .queue-item,
 .icon-button,
 .primary-action,
+.secondary-action,
+.auth-button,
 .play-all-button,
 .play-button,
 .now-playing,
@@ -254,6 +256,81 @@ button {
   background: #ff3d57;
   border-radius: 8px;
   box-shadow: 0 14px 28px rgb(255 61 87 / 22%);
+}
+
+.primary-action:disabled {
+  cursor: default;
+  opacity: 0.58;
+  box-shadow: none;
+}
+
+.secondary-action,
+.auth-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  color: #657185;
+  background: #fff;
+  border: 1px solid #e4e9f3;
+  border-radius: 8px;
+}
+
+.secondary-action {
+  min-width: 120px;
+  padding: 0 18px;
+}
+
+.secondary-action:hover,
+.auth-button:hover,
+.auth-button--active {
+  color: #ec223b;
+  border-color: #ffd0d8;
+  background: #fff6f8;
+}
+
+.auth-control {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.auth-button {
+  min-width: 108px;
+  padding: 0 18px;
+  font-weight: 800;
+}
+
+.auth-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 12;
+  display: grid;
+  width: 168px;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #e8ecf3;
+  border-radius: 8px;
+  box-shadow: 0 18px 42px rgb(31 42 68 / 16%);
+}
+
+.auth-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 40px;
+  padding: 0 10px;
+  color: #5f6b7f;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+}
+
+.auth-menu button:hover {
+  color: #ec223b;
+  background: #fff0f3;
 }
 
 .hero-band {
@@ -770,6 +847,153 @@ button {
   border-radius: 8px;
 }
 
+.admin-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.admin-card {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-height: 106px;
+  padding: 18px;
+  color: #273149;
+  background: #fff;
+  border: 1px solid #e7ebf4;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgb(39 49 73 / 6%);
+}
+
+.admin-card--primary {
+  border-color: #ffd0d8;
+  background: #fff8fa;
+}
+
+.admin-card__icon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  color: #fff;
+  background: #ff3d57;
+  border-radius: 8px;
+}
+
+.admin-card strong,
+.admin-card small {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.admin-card strong {
+  font-size: 17px;
+}
+
+.admin-card small {
+  margin-top: 7px;
+  color: #7b8494;
+}
+
+.admin-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.login-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(255 255 255 / 72%);
+  backdrop-filter: blur(10px);
+}
+
+.login-dialog {
+  width: min(420px, 100%);
+  padding: 22px;
+  color: #273149;
+  background: #fff;
+  border: 1px solid #e7ebf4;
+  border-radius: 8px;
+  box-shadow: 0 24px 70px rgb(31 42 68 / 18%);
+}
+
+.login-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.login-dialog__header strong,
+.login-dialog__header small {
+  display: block;
+}
+
+.login-dialog__header strong {
+  font-size: 21px;
+}
+
+.login-dialog__header small {
+  margin-top: 5px;
+  color: #8a93a3;
+}
+
+.login-form {
+  display: grid;
+  gap: 14px;
+}
+
+.login-form label {
+  display: grid;
+  gap: 8px;
+  color: #6f798b;
+  font-weight: 800;
+}
+
+.login-form input {
+  height: 46px;
+  padding: 0 14px;
+  color: #273149;
+  border: 1px solid #e1e6f0;
+  border-radius: 8px;
+  outline: 0;
+}
+
+.login-form input:focus {
+  border-color: #ff9cad;
+  box-shadow: 0 0 0 4px rgb(255 61 87 / 10%);
+}
+
+.login-error {
+  margin: 0;
+  color: #ec223b;
+}
+
+.login-pending {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: 18px 0 4px;
+  color: #7b8494;
+}
+
+.login-pending strong {
+  color: #273149;
+  font-size: 18px;
+}
+
 .player-bar {
   position: relative;
   z-index: 30;
@@ -1172,6 +1396,10 @@ button {
   .song-row__like {
     display: none;
   }
+
+  .admin-panel {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -1242,6 +1470,21 @@ button {
 
   .primary-action {
     width: 100%;
+  }
+
+  .auth-control,
+  .auth-button {
+    width: 100%;
+  }
+
+  .auth-menu {
+    right: auto;
+    left: 0;
+    width: 100%;
+  }
+
+  .admin-panel {
+    grid-template-columns: 1fr;
   }
 
   .hero-stats {

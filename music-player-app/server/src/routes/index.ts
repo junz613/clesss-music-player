@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import { adminRoutes } from "./adminRoutes.js";
 import { favoriteRoutes } from "./favoriteRoutes.js";
 import { healthRoutes } from "./healthRoutes.js";
 import { songRoutes } from "./songRoutes.js";
@@ -10,3 +11,4 @@ export const apiRoutes = Router();
 apiRoutes.use(healthRoutes);
 apiRoutes.use(songRoutes);
 apiRoutes.use(favoriteRoutes);
+apiRoutes.use(adminRoutes);

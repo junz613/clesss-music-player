@@ -5,18 +5,22 @@ import {
   Heart,
   Home,
   ListMusic,
+  LogIn,
   LoaderCircle,
   Music2,
   Pause,
   Play,
   Search,
   Settings,
+  ShieldCheck,
   SkipBack,
   SkipForward,
   Trash2,
+  UserRound,
   Volume2
 } from "lucide-vue-next";
 
+import { fetchAdminSession, loginAdmin } from "../api/admin";
 import {
   addFavoriteSong,
   fetchFavoriteSongs,
@@ -33,10 +37,11 @@ import singleLoopIconUrl from "../assets/player/play-mode-single-loop.png";
 import tonearmUrl from "../assets/player/tonearm.png";
 import { usePlayerStore } from "../stores/player";
 
-type ViewMode = "home" | "search" | "library" | "folder" | "favorites";
+type ViewMode = "home" | "search" | "library" | "folder" | "favorites" | "admin";
 
 const REQUEST_PAGE_SIZE = 500;
 const PLAY_ALL_LIMIT = 500;
+const ADMIN_TOKEN_STORAGE_KEY = "clesss-admin-token";
 
 const player = usePlayerStore();
 const allSongs = ref<Song[]>([]);
@@ -53,12 +58,24 @@ const showPlayerDetail = ref(false);
 const showQueuePanel = ref(false);
 const queuePanelRef = ref<HTMLElement | null>(null);
 const queueToggleRef = ref<HTMLButtonElement | null>(null);
+const authMenuRef = ref<HTMLElement | null>(null);
+const authToggleRef = ref<HTMLButtonElement | null>(null);
 const audioRef = ref<HTMLAudioElement | null>(null);
 const currentTime = ref(0);
 const loadedDuration = ref(0);
 const volume = ref(0.72);
+const adminToken = ref(localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || "");
+const adminExpiresAt = ref("");
+const showAuthMenu = ref(false);
+const showAdminLogin = ref(false);
+const loginDialogMode = ref<"admin" | "user">("admin");
+const adminPassword = ref("");
+const adminLoginError = ref("");
+const adminLoginLoading = ref(false);
 
 const highlightedSongs = computed(() => allSongs.value.slice(0, 6));
+const adminLoggedIn = computed(() => Boolean(adminToken.value));
+const authLabel = computed(() => (adminLoggedIn.value ? "管理员" : "未登录"));
 const folderGroups = computed(() => {
   const groups = new Map<string, Song[]>();
 
@@ -82,6 +99,10 @@ const heroCount = computed(() => {
     return folderGroups.value.length;
   }
 
+  if (viewMode.value === "admin") {
+    return adminLoggedIn.value ? "ON" : "OFF";
+  }
+
   if (viewMode.value === "favorites") {
     return favoriteSongs.value.length;
   }
@@ -97,9 +118,17 @@ const heroCountLabel = computed(() => {
     return "已收藏";
   }
 
+  if (viewMode.value === "admin") {
+    return "后台状态";
+  }
+
   return "当前列表";
 });
 const viewTitle = computed(() => {
+  if (viewMode.value === "admin") {
+    return "管理员后台";
+  }
+
   if (viewMode.value === "search") {
     return "搜索结果";
   }
@@ -119,6 +148,10 @@ const viewTitle = computed(() => {
   return "推荐歌曲";
 });
 const heroTitle = computed(() => {
+  if (viewMode.value === "admin") {
+    return "ClessS 管理后台";
+  }
+
   if (viewMode.value === "favorites") {
     return "ClessS 收藏";
   }
@@ -134,6 +167,10 @@ const heroTitle = computed(() => {
   return "ClessS 本地音乐库";
 });
 const heroDescription = computed(() => {
+  if (viewMode.value === "admin") {
+    return adminLoggedIn.value ? "管理员已登录，可以进入后续歌曲管理流程。" : "请输入管理员密码后进入后台。";
+  }
+
   if (viewMode.value === "search") {
     return `正在筛选「${keyword.value.trim()}」`;
   }
@@ -207,6 +244,7 @@ const volumeStyle = computed(() => ({
 onMounted(() => {
   void showHome();
   void loadFavorites();
+  void restoreAdminSession();
   document.addEventListener("pointerdown", handleDocumentPointerDown);
 });
 
@@ -244,6 +282,91 @@ watch(volume, (nextVolume) => {
   }
 });
 
+async function restoreAdminSession() {
+  if (!adminToken.value) {
+    return;
+  }
+
+  try {
+    const result = await fetchAdminSession(adminToken.value);
+    adminExpiresAt.value = result.data.expiresAt;
+  } catch {
+    clearAdminSession();
+  }
+}
+
+function toggleAuthMenu() {
+  showAuthMenu.value = !showAuthMenu.value;
+}
+
+function openAdminLogin() {
+  showAuthMenu.value = false;
+
+  if (adminLoggedIn.value) {
+    showAdmin();
+    return;
+  }
+
+  adminPassword.value = "";
+  adminLoginError.value = "";
+  loginDialogMode.value = "admin";
+  showAdminLogin.value = true;
+}
+
+function closeAdminLogin() {
+  showAdminLogin.value = false;
+  adminLoginError.value = "";
+  adminPassword.value = "";
+  loginDialogMode.value = "admin";
+}
+
+async function submitAdminLogin() {
+  const password = adminPassword.value.trim();
+
+  if (!password) {
+    adminLoginError.value = "请输入管理员密码";
+    return;
+  }
+
+  adminLoginLoading.value = true;
+  adminLoginError.value = "";
+
+  try {
+    const result = await loginAdmin(password);
+    adminToken.value = result.data.token;
+    adminExpiresAt.value = result.data.expiresAt;
+    localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, result.data.token);
+    closeAdminLogin();
+    showAdmin();
+  } catch {
+    adminLoginError.value = "管理员密码不正确";
+  } finally {
+    adminLoginLoading.value = false;
+  }
+}
+
+function clearAdminSession() {
+  adminToken.value = "";
+  adminExpiresAt.value = "";
+  localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+}
+
+function logoutAdmin() {
+  clearAdminSession();
+  showAuthMenu.value = false;
+
+  if (viewMode.value === "admin") {
+    void showHome();
+  }
+}
+
+function showPendingUserLogin() {
+  showAuthMenu.value = false;
+  loginDialogMode.value = "user";
+  adminLoginError.value = "";
+  showAdminLogin.value = true;
+}
+
 async function showHome(forceReload = false) {
   keyword.value = "";
   selectedFolder.value = "";
@@ -268,6 +391,19 @@ async function showFavorites(forceReload = false) {
   songs.value = favoriteSongs.value;
 }
 
+function showAdmin() {
+  keyword.value = "";
+  selectedFolder.value = "";
+
+  if (!adminLoggedIn.value) {
+    openAdminLogin();
+    return;
+  }
+
+  viewMode.value = "admin";
+  songs.value = [];
+}
+
 async function openFolder(folder: string) {
   selectedFolder.value = folder;
   viewMode.value = "folder";
@@ -288,6 +424,11 @@ async function refreshCurrentView() {
 
   if (viewMode.value === "favorites") {
     await showFavorites(true);
+    return;
+  }
+
+  if (viewMode.value === "admin") {
+    await restoreAdminSession();
     return;
   }
 
@@ -600,21 +741,27 @@ function toggleQueuePanel() {
 }
 
 function handleDocumentPointerDown(event: PointerEvent) {
-  if (!showQueuePanel.value) {
-    return;
-  }
-
   const target = event.target as Node | null;
 
   if (!target) {
     return;
   }
 
-  if (queuePanelRef.value?.contains(target) || queueToggleRef.value?.contains(target)) {
-    return;
+  if (showQueuePanel.value) {
+    if (queuePanelRef.value?.contains(target) || queueToggleRef.value?.contains(target)) {
+      return;
+    }
+
+    showQueuePanel.value = false;
   }
 
-  showQueuePanel.value = false;
+  if (showAuthMenu.value) {
+    if (authMenuRef.value?.contains(target) || authToggleRef.value?.contains(target)) {
+      return;
+    }
+
+    showAuthMenu.value = false;
+  }
 }
 
 function cyclePlaybackMode() {
@@ -654,7 +801,7 @@ function handleVolumeInput(event: Event) {
           <Heart :size="20" />
           <span>收藏</span>
         </button>
-        <button class="nav-item" type="button" title="管理">
+        <button class="nav-item" :class="{ 'nav-item--active': viewMode === 'admin' }" type="button" title="管理" @click="showAdmin">
           <Settings :size="20" />
           <span>管理</span>
         </button>
@@ -687,6 +834,38 @@ function handleVolumeInput(event: Event) {
           <Search :size="18" />
           <span>搜索</span>
         </button>
+        <div class="auth-control">
+          <button
+            ref="authToggleRef"
+            class="auth-button"
+            :class="{ 'auth-button--active': showAuthMenu || adminLoggedIn }"
+            type="button"
+            @click="toggleAuthMenu"
+          >
+            <ShieldCheck v-if="adminLoggedIn" :size="18" />
+            <UserRound v-else :size="18" />
+            <span>{{ authLabel }}</span>
+          </button>
+
+          <div v-if="showAuthMenu" ref="authMenuRef" class="auth-menu">
+            <button v-if="adminLoggedIn" type="button" @click="showAdmin">
+              <Settings :size="17" />
+              <span>进入后台</span>
+            </button>
+            <button v-else type="button" @click="openAdminLogin">
+              <ShieldCheck :size="17" />
+              <span>管理员登录</span>
+            </button>
+            <button v-if="!adminLoggedIn" type="button" @click="showPendingUserLogin">
+              <LogIn :size="17" />
+              <span>用户登录</span>
+            </button>
+            <button v-if="adminLoggedIn" type="button" @click="logoutAdmin">
+              <LogIn :size="17" />
+              <span>退出登录</span>
+            </button>
+          </div>
+        </div>
       </header>
 
       <section class="hero-band">
@@ -706,7 +885,7 @@ function handleVolumeInput(event: Event) {
           <h2>{{ viewTitle }}</h2>
           <div class="section-actions">
             <button
-              v-if="viewMode !== 'library'"
+              v-if="viewMode !== 'library' && viewMode !== 'admin'"
               class="play-all-button"
               type="button"
               :disabled="!songs.length"
@@ -723,6 +902,48 @@ function handleVolumeInput(event: Event) {
         </div>
 
         <div v-if="errorMessage" class="empty-state">{{ errorMessage }}</div>
+        <div v-else-if="viewMode === 'admin'" class="admin-panel">
+          <section class="admin-card admin-card--primary">
+            <span class="admin-card__icon">
+              <ShieldCheck :size="26" />
+            </span>
+            <div>
+              <strong>管理员已登录</strong>
+              <small>{{ adminExpiresAt ? `有效期至 ${new Date(adminExpiresAt).toLocaleString()}` : "本地管理员会话" }}</small>
+            </div>
+          </section>
+
+          <section class="admin-card">
+            <span class="admin-card__icon">
+              <Music2 :size="26" />
+            </span>
+            <div>
+              <strong>新增歌曲</strong>
+              <small>第 10 步接入上传</small>
+            </div>
+          </section>
+
+          <section class="admin-card">
+            <span class="admin-card__icon">
+              <Trash2 :size="26" />
+            </span>
+            <div>
+              <strong>删除歌曲</strong>
+              <small>第 11 步接入软删除</small>
+            </div>
+          </section>
+
+          <div class="admin-actions">
+            <button class="primary-action" type="button" @click="refreshCurrentView">
+              <LoaderCircle :class="{ spinning: loading }" :size="18" />
+              <span>刷新状态</span>
+            </button>
+            <button class="secondary-action" type="button" @click="logoutAdmin">
+              <LogIn :size="18" />
+              <span>退出登录</span>
+            </button>
+          </div>
+        </div>
         <div v-else-if="viewMode === 'library'" class="folder-grid">
           <button v-for="folder in folderGroups" :key="folder.name" class="folder-card" type="button" @click="openFolder(folder.name)">
             <span class="folder-card__cover">
@@ -780,6 +1001,38 @@ function handleVolumeInput(event: Event) {
         </div>
       </section>
     </main>
+
+    <div v-if="showAdminLogin" class="login-modal" role="dialog" aria-modal="true" aria-label="登录">
+      <div class="login-dialog">
+        <header class="login-dialog__header">
+          <div>
+            <strong>{{ loginDialogMode === "admin" ? "管理员登录" : "用户登录" }}</strong>
+            <small>{{ loginDialogMode === "admin" ? "输入本地管理员密码" : "普通用户登录暂未开放" }}</small>
+          </div>
+          <button class="icon-button" type="button" title="关闭" @click="closeAdminLogin">
+            <ChevronDown :size="22" />
+          </button>
+        </header>
+
+        <form v-if="loginDialogMode === 'admin'" class="login-form" @submit.prevent="submitAdminLogin">
+          <label>
+            <span>管理员密码</span>
+            <input v-model="adminPassword" type="password" autocomplete="current-password" placeholder="请输入管理员密码" />
+          </label>
+          <p v-if="adminLoginError" class="login-error">{{ adminLoginError }}</p>
+          <button class="primary-action" type="submit" :disabled="adminLoginLoading">
+            <ShieldCheck :size="18" />
+            <span>{{ adminLoginLoading ? "登录中" : "进入后台" }}</span>
+          </button>
+        </form>
+
+        <div v-else class="login-pending">
+          <UserRound :size="38" />
+          <strong>用户登录暂未开放</strong>
+          <button class="primary-action" type="button" @click="closeAdminLogin">知道了</button>
+        </div>
+      </div>
+    </div>
 
     <section v-if="showPlayerDetail && player.currentSong" class="player-detail" aria-label="播放详情页">
       <button class="detail-close" type="button" title="返回首页" @click="closePlayerDetail">
