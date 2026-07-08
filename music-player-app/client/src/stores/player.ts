@@ -4,6 +4,8 @@ import type { Song } from "../api/songs";
 
 export type PlaybackMode = "listLoop" | "singleLoop" | "random";
 
+const MAX_QUEUE_SIZE = 500;
+
 export const usePlayerStore = defineStore("player", {
   state: () => ({
     currentSong: null as Song | null,
@@ -17,6 +19,18 @@ export const usePlayerStore = defineStore("player", {
       this.currentSong = song;
       this.queue = this.createQueueFromSong(song, queue);
       this.isPlaying = true;
+    },
+    playQueue(queue: Song[]) {
+      const nextQueue = queue.slice(0, MAX_QUEUE_SIZE);
+
+      if (!nextQueue.length) {
+        return null;
+      }
+
+      this.currentSong = nextQueue[0];
+      this.queue = nextQueue;
+      this.isPlaying = true;
+      return this.currentSong;
     },
     togglePlaying() {
       if (!this.currentSong) {
@@ -103,7 +117,7 @@ export const usePlayerStore = defineStore("player", {
         return [song];
       }
 
-      return queue.slice(startIndex);
+      return queue.slice(startIndex, startIndex + MAX_QUEUE_SIZE);
     },
     pickRandomSong() {
       if (!this.queue.length) {

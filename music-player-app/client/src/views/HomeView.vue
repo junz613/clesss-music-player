@@ -24,6 +24,9 @@ import randomIconUrl from "../assets/player/play-mode-random.png";
 import singleLoopIconUrl from "../assets/player/play-mode-single-loop.png";
 import { usePlayerStore } from "../stores/player";
 
+const SONG_LIST_PAGE_SIZE = 500;
+const PLAY_ALL_LIMIT = 500;
+
 const player = usePlayerStore();
 const songs = ref<Song[]>([]);
 const keyword = ref("");
@@ -123,8 +126,8 @@ async function loadSongs() {
 
   try {
     const result = keyword.value.trim()
-      ? await searchSongs(keyword.value.trim(), 36)
-      : await fetchSongs(36);
+      ? await searchSongs(keyword.value.trim(), SONG_LIST_PAGE_SIZE)
+      : await fetchSongs(SONG_LIST_PAGE_SIZE);
 
     songs.value = result.data;
   } catch {
@@ -136,6 +139,18 @@ async function loadSongs() {
 
 function playSong(song: Song) {
   player.play(song, songs.value);
+  void nextTick(() => playCurrentAudio());
+}
+
+function playAllSongs() {
+  const queue = songs.value.slice(0, PLAY_ALL_LIMIT);
+  const firstSong = player.playQueue(queue);
+
+  if (!firstSong) {
+    return;
+  }
+
+  showQueuePanel.value = true;
   void nextTick(() => playCurrentAudio());
 }
 
@@ -363,9 +378,15 @@ function handleVolumeInput(event: Event) {
       <section class="content-section">
         <div class="section-heading">
           <h2>{{ keyword ? "搜索结果" : "推荐歌曲" }}</h2>
-          <button class="icon-button" type="button" title="刷新" @click="loadSongs">
-            <LoaderCircle :class="{ spinning: loading }" :size="20" />
-          </button>
+          <div class="section-actions">
+            <button class="play-all-button" type="button" :disabled="!songs.length" @click="playAllSongs">
+              <Play :size="18" fill="currentColor" />
+              <span>播放全部</span>
+            </button>
+            <button class="icon-button" type="button" title="刷新" @click="loadSongs">
+              <LoaderCircle :class="{ spinning: loading }" :size="20" />
+            </button>
+          </div>
         </div>
 
         <div v-if="errorMessage" class="empty-state">{{ errorMessage }}</div>
