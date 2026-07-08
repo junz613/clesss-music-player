@@ -278,6 +278,16 @@ pnpm server:build
 https://github.com/junz613/clesss-music-player
 ```
 
+## 服务器部署准备
+
+部署准备分支会维护第二阶段上服务器前的清单和模板：
+
+- 生产环境变量模板：`.env.production.example`
+- 部署前准备文档：[music-player-app/docs/deployment-prep.md](music-player-app/docs/deployment-prep.md)
+- 统一脚本入口：`pnpm build`、`pnpm server:start`、`pnpm prisma:push`、`pnpm songs:scan`
+
+真实部署时不要提交服务器 `.env`、歌曲文件、数据库导出或证书文件。
+
 ## 部署前检查清单
 
 进入服务器部署分支前，需要确认：

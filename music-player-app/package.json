@@ -7,6 +7,11 @@
     "client:dev": "pnpm --dir client dev",
     "client:build": "pnpm --dir client build",
     "server:dev": "pnpm --dir server dev",
-    "server:build": "pnpm --dir server build"
+    "server:build": "pnpm --dir server build",
+    "server:start": "pnpm --dir server start",
+    "prisma:generate": "pnpm --dir server prisma:generate",
+    "prisma:push": "pnpm --dir server prisma:push",
+    "songs:scan": "pnpm --dir server songs:scan",
+    "build": "pnpm client:build && pnpm server:build"
   }
 }

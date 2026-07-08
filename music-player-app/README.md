@@ -20,8 +20,10 @@ docs/     后续接口、数据库和部署补充文档目录
 pnpm install
 pnpm server:dev
 pnpm client:dev
+pnpm build
 pnpm server:build
 pnpm client:build
+pnpm server:start
 ```
 
 开发时通常需要分别启动后端和前端：
@@ -34,3 +36,5 @@ pnpm client:dev
 前端地址：`http://localhost:5173`
 
 后端地址：`http://localhost:3000`
+
+服务器部署前准备见：[docs/deployment-prep.md](docs/deployment-prep.md)。
