@@ -51,3 +51,21 @@ export async function searchSongs(keyword: string, params: SongListParams = {}) 
 
   return response.data;
 }
+
+export async function fetchFavoriteSongs(params: SongListParams = {}) {
+  const response = await api.get<SongListResponse>("/favorites", {
+    params
+  });
+
+  return response.data;
+}
+
+export async function addFavoriteSong(songId: string) {
+  const response = await api.post<{ data: Song }>(`/favorites/${songId}`);
+
+  return response.data;
+}
+
+export async function removeFavoriteSong(songId: string) {
+  await api.delete(`/favorites/${songId}`);
+}

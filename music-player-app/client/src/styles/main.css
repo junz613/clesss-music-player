@@ -94,7 +94,8 @@ button {
 .primary-action,
 .play-all-button,
 .play-button,
-.now-playing {
+.now-playing,
+.song-row__like {
   border: 0;
 }
 
@@ -663,6 +664,7 @@ button {
   min-height: 84px;
   padding: 10px 22px;
   color: #273149;
+  cursor: pointer;
   text-align: left;
   background: transparent;
   border-bottom: 1px solid #f2f4f8;
@@ -741,10 +743,16 @@ button {
   width: 34px;
   height: 34px;
   color: #8a93a3;
+  background: transparent;
   border-radius: 8px;
 }
 
 .song-row__like:hover {
+  color: #ff3d57;
+  background: #fff0f3;
+}
+
+.song-row__like--active {
   color: #ff3d57;
   background: #fff0f3;
 }

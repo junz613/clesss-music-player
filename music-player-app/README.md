@@ -12,6 +12,8 @@ server/   后端 Express + TypeScript + Prisma + MySQL 项目
 docs/     后续接口、数据库和部署补充文档目录
 ```
 
+当前应用已打通本地歌曲列表、搜索、播放、播放队列、歌曲库分类和收藏页功能。
+
 ## 常用命令
 
 ```powershell

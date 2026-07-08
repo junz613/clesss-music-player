@@ -17,24 +17,35 @@ import {
   Volume2
 } from "lucide-vue-next";
 
-import { fetchSongs, searchSongs, type Song, type SongListParams } from "../api/songs";
+import {
+  addFavoriteSong,
+  fetchFavoriteSongs,
+  fetchSongs,
+  removeFavoriteSong,
+  searchSongs,
+  type Song,
+  type SongListParams
+} from "../api/songs";
 import logoUrl from "../assets/clesss-logo.jpg";
 import listLoopIconUrl from "../assets/player/play-mode-list-loop.png";
 import randomIconUrl from "../assets/player/play-mode-random.png";
 import singleLoopIconUrl from "../assets/player/play-mode-single-loop.png";
 import { usePlayerStore } from "../stores/player";
 
-type ViewMode = "home" | "search" | "library" | "folder";
+type ViewMode = "home" | "search" | "library" | "folder" | "favorites";
 
 const REQUEST_PAGE_SIZE = 500;
 const PLAY_ALL_LIMIT = 500;
 
 const player = usePlayerStore();
 const allSongs = ref<Song[]>([]);
+const favoriteSongs = ref<Song[]>([]);
 const songs = ref<Song[]>([]);
 const keyword = ref("");
 const viewMode = ref<ViewMode>("home");
 const selectedFolder = ref("");
+const favoriteIds = ref<Set<string>>(new Set());
+const favoritesLoaded = ref(false);
 const loading = ref(false);
 const errorMessage = ref("");
 const showPlayerDetail = ref(false);
@@ -70,12 +81,30 @@ const heroCount = computed(() => {
     return folderGroups.value.length;
   }
 
+  if (viewMode.value === "favorites") {
+    return favoriteSongs.value.length;
+  }
+
   return songs.value.length;
 });
-const heroCountLabel = computed(() => (viewMode.value === "library" ? "分类" : "当前列表"));
+const heroCountLabel = computed(() => {
+  if (viewMode.value === "library") {
+    return "分类";
+  }
+
+  if (viewMode.value === "favorites") {
+    return "已收藏";
+  }
+
+  return "当前列表";
+});
 const viewTitle = computed(() => {
   if (viewMode.value === "search") {
     return "搜索结果";
+  }
+
+  if (viewMode.value === "favorites") {
+    return "我的收藏";
   }
 
   if (viewMode.value === "library") {
@@ -89,6 +118,10 @@ const viewTitle = computed(() => {
   return "推荐歌曲";
 });
 const heroTitle = computed(() => {
+  if (viewMode.value === "favorites") {
+    return "ClessS 收藏";
+  }
+
   if (viewMode.value === "folder") {
     return selectedFolder.value;
   }
@@ -104,6 +137,10 @@ const heroDescription = computed(() => {
     return `正在筛选「${keyword.value.trim()}」`;
   }
 
+  if (viewMode.value === "favorites") {
+    return `${favoriteSongs.value.length} 首已收藏单曲`;
+  }
+
   if (viewMode.value === "library") {
     return "按本地文件夹查看各时期歌曲。";
   }
@@ -113,6 +150,21 @@ const heroDescription = computed(() => {
   }
 
   return "从本地文件夹读取，准备接入完整播放器。";
+});
+const emptyStateText = computed(() => {
+  if (viewMode.value === "favorites") {
+    return "暂无收藏歌曲";
+  }
+
+  if (viewMode.value === "search") {
+    return "没有找到匹配歌曲";
+  }
+
+  if (viewMode.value === "folder") {
+    return "这个分类下暂无歌曲";
+  }
+
+  return "暂无歌曲";
 });
 const playbackDuration = computed(() => loadedDuration.value || player.currentSong?.duration || 0);
 const progressPercent = computed(() => {
@@ -153,6 +205,7 @@ const volumeStyle = computed(() => ({
 
 onMounted(() => {
   void showHome();
+  void loadFavorites();
   document.addEventListener("pointerdown", handleDocumentPointerDown);
 });
 
@@ -206,6 +259,14 @@ async function showLibrary(forceReload = false) {
   songs.value = [];
 }
 
+async function showFavorites(forceReload = false) {
+  keyword.value = "";
+  selectedFolder.value = "";
+  viewMode.value = "favorites";
+  await loadFavorites(forceReload);
+  songs.value = favoriteSongs.value;
+}
+
 async function openFolder(folder: string) {
   selectedFolder.value = folder;
   viewMode.value = "folder";
@@ -221,6 +282,11 @@ async function refreshCurrentView() {
 
   if (viewMode.value === "library") {
     await showLibrary(true);
+    return;
+  }
+
+  if (viewMode.value === "favorites") {
+    await showFavorites(true);
     return;
   }
 
@@ -273,6 +339,33 @@ async function loadAllSongs(forceReload = false) {
   }
 }
 
+async function loadFavorites(forceReload = false) {
+  if (favoritesLoaded.value && !forceReload) {
+    return;
+  }
+
+  const shouldSurfaceError = viewMode.value === "favorites";
+
+  if (shouldSurfaceError) {
+    loading.value = true;
+    errorMessage.value = "";
+  }
+
+  try {
+    favoriteSongs.value = await loadFavoritePages();
+    favoriteIds.value = new Set(favoriteSongs.value.map((song) => song.id));
+    favoritesLoaded.value = true;
+  } catch {
+    if (shouldSurfaceError) {
+      errorMessage.value = "收藏列表加载失败";
+    }
+  } finally {
+    if (shouldSurfaceError) {
+      loading.value = false;
+    }
+  }
+}
+
 async function loadSongPages(options: { keyword?: string; folder?: string } = {}) {
   const loadedSongs: Song[] = [];
   let page = 1;
@@ -287,6 +380,25 @@ async function loadSongPages(options: { keyword?: string; folder?: string } = {}
     const result = options.keyword
       ? await searchSongs(options.keyword, requestParams)
       : await fetchSongs(requestParams);
+
+    loadedSongs.push(...result.data);
+    totalPages = result.pagination.totalPages || 1;
+    page += 1;
+  } while (page <= totalPages);
+
+  return loadedSongs;
+}
+
+async function loadFavoritePages() {
+  const loadedSongs: Song[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const result = await fetchFavoriteSongs({
+      page,
+      pageSize: REQUEST_PAGE_SIZE
+    });
 
     loadedSongs.push(...result.data);
     totalPages = result.pagination.totalPages || 1;
@@ -316,6 +428,48 @@ function playAllSongs() {
 function playQueuedSong(song: Song) {
   player.play(song, player.queue);
   void nextTick(() => playCurrentAudio());
+}
+
+function isFavorite(songId: string) {
+  return favoriteIds.value.has(songId);
+}
+
+async function toggleFavorite(song: Song) {
+  const wasFavorite = isFavorite(song.id);
+  const previousIds = new Set(favoriteIds.value);
+  const previousFavoriteSongs = favoriteSongs.value;
+  const nextIds = new Set(favoriteIds.value);
+
+  if (wasFavorite) {
+    nextIds.delete(song.id);
+    favoriteSongs.value = favoriteSongs.value.filter((favoriteSong) => favoriteSong.id !== song.id);
+  } else {
+    nextIds.add(song.id);
+    favoriteSongs.value = [song, ...favoriteSongs.value.filter((favoriteSong) => favoriteSong.id !== song.id)];
+  }
+
+  favoriteIds.value = nextIds;
+  syncFavoriteViewSongs();
+
+  try {
+    if (wasFavorite) {
+      await removeFavoriteSong(song.id);
+      return;
+    }
+
+    await addFavoriteSong(song.id);
+  } catch {
+    favoriteIds.value = previousIds;
+    favoriteSongs.value = previousFavoriteSongs;
+    syncFavoriteViewSongs();
+    errorMessage.value = "收藏操作失败，请稍后再试";
+  }
+}
+
+function syncFavoriteViewSongs() {
+  if (viewMode.value === "favorites") {
+    songs.value = favoriteSongs.value;
+  }
 }
 
 // The full player mirrors the reference detail page and only opens after a song has been selected.
@@ -489,7 +643,7 @@ function handleVolumeInput(event: Event) {
           <Music2 :size="20" />
           <span>歌曲库</span>
         </button>
-        <button class="nav-item" type="button" title="收藏">
+        <button class="nav-item" :class="{ 'nav-item--active': viewMode === 'favorites' }" type="button" title="收藏" @click="showFavorites()">
           <Heart :size="20" />
           <span>收藏</span>
         </button>
@@ -573,6 +727,7 @@ function handleVolumeInput(event: Event) {
             </span>
           </button>
         </div>
+        <div v-else-if="!songs.length" class="empty-state">{{ emptyStateText }}</div>
         <div v-else class="song-list">
           <div class="song-list__head" aria-hidden="true">
             <span>#</span>
@@ -582,13 +737,16 @@ function handleVolumeInput(event: Event) {
             <span>时长</span>
           </div>
 
-          <button
+          <div
             v-for="(song, index) in songs"
             :key="song.id"
             class="song-row"
             :class="{ 'song-row--active': player.currentSong?.id === song.id }"
-            type="button"
+            role="button"
+            tabindex="0"
             @click="playSong(song)"
+            @keydown.enter.self="playSong(song)"
+            @keydown.space.self.prevent="playSong(song)"
           >
             <span class="song-row__index">{{ String(index + 1).padStart(2, "0") }}</span>
             <span class="song-row__title">
@@ -601,11 +759,17 @@ function handleVolumeInput(event: Event) {
               </span>
             </span>
             <span class="song-row__album">{{ song.album || song.folder }}</span>
-            <span class="song-row__like">
-              <Heart :size="20" />
-            </span>
+            <button
+              class="song-row__like"
+              :class="{ 'song-row__like--active': isFavorite(song.id) }"
+              type="button"
+              :title="isFavorite(song.id) ? '取消收藏' : '收藏'"
+              @click.stop="toggleFavorite(song)"
+            >
+              <Heart :size="20" :fill="isFavorite(song.id) ? 'currentColor' : 'none'" />
+            </button>
             <span class="song-row__duration">{{ formatDuration(song.duration) }}</span>
-          </button>
+          </div>
         </div>
       </section>
     </main>
