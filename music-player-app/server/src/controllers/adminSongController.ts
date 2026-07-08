@@ -1,13 +1,62 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { NextFunction, Request, Response } from "express";
+import type { Prisma } from "@prisma/client";
 
 import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
-import { presentSong, publicSongSelect } from "../services/songPresenter.js";
+import { presentSong, presentSongs, publicSongSelect } from "../services/songPresenter.js";
 import { upsertSongFile } from "../services/songScanner.js";
 
 const SUPPORTED_UPLOAD_EXTENSIONS = new Set([".mp3"]);
+const MAX_ADMIN_PAGE_SIZE = 500;
+
+export async function listAdminSongs(request: Request, response: Response, next: NextFunction) {
+  try {
+    const page = readPositiveInteger(request.query.page, 1);
+    const pageSize = Math.min(readPositiveInteger(request.query.pageSize, 50), MAX_ADMIN_PAGE_SIZE);
+    const keyword = typeof request.query.keyword === "string" ? request.query.keyword.trim() : "";
+    const folder = typeof request.query.folder === "string" ? request.query.folder.trim() : "";
+    const where: Prisma.SongWhereInput = {
+      isDeleted: false,
+      ...(folder ? { folder } : {}),
+      ...(keyword
+        ? {
+            OR: [
+              { title: { contains: keyword } },
+              { fileName: { contains: keyword } },
+              { folder: { contains: keyword } },
+              { artist: { contains: keyword } },
+              { album: { contains: keyword } }
+            ]
+          }
+        : {})
+    };
+
+    const [songs, total] = await Promise.all([
+      prisma.song.findMany({
+        where,
+        select: publicSongSelect,
+        orderBy: [{ folder: "asc" }, { fileName: "asc" }],
+        skip: (page - 1) * pageSize,
+        take: pageSize
+      }),
+      prisma.song.count({ where })
+    ]);
+
+    response.json({
+      data: presentSongs(songs),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function uploadAdminSong(request: Request, response: Response, next: NextFunction) {
   let savedFilePath = "";
@@ -69,6 +118,29 @@ export async function uploadAdminSong(request: Request, response: Response, next
   }
 }
 
+export async function deleteAdminSong(request: Request, response: Response, next: NextFunction) {
+  try {
+    const result = await prisma.song.updateMany({
+      where: {
+        id: request.params.id,
+        isDeleted: false
+      },
+      data: {
+        isDeleted: true
+      }
+    });
+
+    if (!result.count) {
+      response.status(404).json({ message: "Song not found" });
+      return;
+    }
+
+    response.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
+
 function normalizeFolderName(value: string) {
   return value
     .replace(/[\\/]+/gu, "-")
@@ -115,4 +187,9 @@ async function fileExists(filePath: string) {
     .access(filePath)
     .then(() => true)
     .catch(() => false);
+}
+
+function readPositiveInteger(value: unknown, fallback: number) {
+  const parsedValue = Number(value);
+  return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : fallback;
 }

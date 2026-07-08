@@ -84,7 +84,11 @@ export async function scanLocalSongs(musicRoot = env.musicRoot): Promise<SongSca
       });
 
       if (existingSong) {
-        // 文件仍存在则更新元信息，并恢复之前软删除的记录。
+        if (existingSong.isDeleted) {
+          continue;
+        }
+
+        // 文件仍存在时只刷新未删除记录，管理员软删除的歌曲不被扫描自动恢复。
         await prisma.song.update({
           where: { id: existingSong.id },
           data: {
@@ -94,9 +98,6 @@ export async function scanLocalSongs(musicRoot = env.musicRoot): Promise<SongSca
         });
 
         result.updated += 1;
-        if (existingSong.isDeleted) {
-          result.restored += 1;
-        }
       } else {
         // 新发现的本地音频直接入库。
         await prisma.song.create({

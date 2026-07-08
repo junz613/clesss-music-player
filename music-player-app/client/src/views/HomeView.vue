@@ -21,7 +21,7 @@ import {
   Volume2
 } from "lucide-vue-next";
 
-import { fetchAdminSession, loginAdmin, uploadAdminSong } from "../api/admin";
+import { deleteAdminSong, fetchAdminSession, fetchAdminSongs, loginAdmin, uploadAdminSong } from "../api/admin";
 import {
   addFavoriteSong,
   fetchFavoriteSongs,
@@ -81,6 +81,13 @@ const uploadInputRef = ref<HTMLInputElement | null>(null);
 const uploadError = ref("");
 const uploadSuccess = ref("");
 const uploadLoading = ref(false);
+const adminSongs = ref<Song[]>([]);
+const adminSongKeyword = ref("");
+const adminSongFolder = ref("");
+const adminSongTotal = ref(0);
+const adminSongLoading = ref(false);
+const adminSongError = ref("");
+const deletingSongId = ref("");
 
 const highlightedSongs = computed(() => allSongs.value.slice(0, 6));
 const adminLoggedIn = computed(() => Boolean(adminToken.value));
@@ -421,6 +428,7 @@ function showAdmin() {
   songs.value = [];
   uploadError.value = "";
   void ensureUploadFolders();
+  void loadAdminSongs();
 }
 
 async function ensureUploadFolders() {
@@ -428,6 +436,42 @@ async function ensureUploadFolders() {
 
   if (!selectedUploadFolder.value && uploadFolderOptions.value.length) {
     selectedUploadFolder.value = uploadFolderOptions.value[0];
+  }
+}
+
+async function loadAdminSongs() {
+  if (!adminToken.value) {
+    openAdminLogin();
+    return;
+  }
+
+  adminSongLoading.value = true;
+  adminSongError.value = "";
+
+  try {
+    const loadedSongs: Song[] = [];
+    let page = 1;
+    let totalPages = 1;
+
+    do {
+      const result = await fetchAdminSongs(adminToken.value, {
+        page,
+        pageSize: REQUEST_PAGE_SIZE,
+        keyword: adminSongKeyword.value.trim() || undefined,
+        folder: adminSongFolder.value || undefined
+      });
+
+      loadedSongs.push(...result.data);
+      adminSongTotal.value = result.pagination.total;
+      totalPages = result.pagination.totalPages || 1;
+      page += 1;
+    } while (page <= totalPages);
+
+    adminSongs.value = loadedSongs;
+  } catch {
+    adminSongError.value = "管理列表加载失败，请确认管理员登录状态";
+  } finally {
+    adminSongLoading.value = false;
   }
 }
 
@@ -477,6 +521,7 @@ async function submitSongUpload() {
       uploadInputRef.value.value = "";
     }
     await loadAllSongs(true);
+    await loadAdminSongs();
     selectedUploadFolder.value = folder;
     newUploadFolder.value = "";
     uploadMode.value = "existing";
@@ -484,6 +529,59 @@ async function submitSongUpload() {
     uploadError.value = "上传失败，请确认管理员登录状态和文件格式";
   } finally {
     uploadLoading.value = false;
+  }
+}
+
+async function removeAdminSong(song: Song) {
+  if (!adminToken.value) {
+    openAdminLogin();
+    return;
+  }
+
+  const confirmed = window.confirm(`确定要删除《${song.title}》吗？\n第一阶段会软删除记录，不会删除本地 MP3 文件。`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  deletingSongId.value = song.id;
+  adminSongError.value = "";
+
+  try {
+    await deleteAdminSong(adminToken.value, song.id);
+    removeSongFromLocalState(song.id);
+    adminSongTotal.value = Math.max(0, adminSongTotal.value - 1);
+  } catch {
+    adminSongError.value = "删除失败，请确认管理员登录状态后重试";
+  } finally {
+    deletingSongId.value = "";
+  }
+}
+
+function removeSongFromLocalState(songId: string) {
+  adminSongs.value = adminSongs.value.filter((song) => song.id !== songId);
+  allSongs.value = allSongs.value.filter((song) => song.id !== songId);
+  songs.value = songs.value.filter((song) => song.id !== songId);
+  favoriteSongs.value = favoriteSongs.value.filter((song) => song.id !== songId);
+
+  const nextFavoriteIds = new Set(favoriteIds.value);
+  nextFavoriteIds.delete(songId);
+  favoriteIds.value = nextFavoriteIds;
+
+  player.queue = player.queue.filter((song) => song.id !== songId);
+
+  if (player.currentSong?.id === songId) {
+    audioRef.value?.pause();
+    player.currentSong = null;
+    player.isPlaying = false;
+    currentTime.value = 0;
+    loadedDuration.value = 0;
+    showPlayerDetail.value = false;
+    showQueuePanel.value = false;
+  }
+
+  if (selectedUploadFolder.value && !uploadFolderOptions.value.includes(selectedUploadFolder.value)) {
+    selectedUploadFolder.value = uploadFolderOptions.value[0] || "";
   }
 }
 
@@ -512,6 +610,8 @@ async function refreshCurrentView() {
 
   if (viewMode.value === "admin") {
     await restoreAdminSession();
+    await loadAllSongs(true);
+    await loadAdminSongs();
     return;
   }
 
@@ -1078,6 +1178,77 @@ function handleVolumeInput(event: Event) {
               <span>{{ uploadLoading ? "上传中" : "上传歌曲" }}</span>
             </button>
           </form>
+
+          <section class="admin-manage">
+            <div class="admin-manage__header">
+              <div>
+                <strong>删除歌曲</strong>
+                <small>软删除后，普通歌曲列表、搜索、收藏和播放入口都会隐藏此歌曲</small>
+              </div>
+              <span>{{ adminSongTotal }} 首</span>
+            </div>
+
+            <div class="admin-manage__tools">
+              <label class="upload-field admin-manage__search">
+                <span>搜索歌曲</span>
+                <input
+                  v-model="adminSongKeyword"
+                  type="search"
+                  placeholder="输入标题、文件名、歌手或专辑"
+                  @keyup.enter="loadAdminSongs"
+                />
+              </label>
+
+              <label class="upload-field">
+                <span>歌单筛选</span>
+                <select v-model="adminSongFolder">
+                  <option value="">全部歌单</option>
+                  <option v-for="folder in uploadFolderOptions" :key="folder" :value="folder">
+                    {{ folder }}
+                  </option>
+                </select>
+              </label>
+
+              <button class="primary-action" type="button" :disabled="adminSongLoading" @click="loadAdminSongs">
+                <Search :size="18" />
+                <span>{{ adminSongLoading ? "检索中" : "检索" }}</span>
+              </button>
+            </div>
+
+            <p v-if="adminSongError" class="login-error">{{ adminSongError }}</p>
+
+            <div v-if="adminSongLoading" class="admin-manage__empty">
+              <LoaderCircle class="spinning" :size="22" />
+              <span>正在加载歌曲列表</span>
+            </div>
+            <div v-else-if="!adminSongs.length" class="admin-manage__empty">暂无可删除歌曲</div>
+            <div v-else class="admin-song-list">
+              <div class="admin-song-list__head" aria-hidden="true">
+                <span>歌曲</span>
+                <span>歌单</span>
+                <span>时长</span>
+                <span>操作</span>
+              </div>
+
+              <div v-for="song in adminSongs" :key="song.id" class="admin-song-row">
+                <span class="admin-song-row__title">
+                  <strong>{{ song.title }}</strong>
+                  <small>{{ song.artist || song.fileName }}</small>
+                </span>
+                <span class="admin-song-row__folder">{{ song.folder }}</span>
+                <span class="admin-song-row__duration">{{ formatDuration(song.duration) }}</span>
+                <button
+                  class="danger-action"
+                  type="button"
+                  :disabled="deletingSongId === song.id"
+                  @click="removeAdminSong(song)"
+                >
+                  <Trash2 :size="17" />
+                  <span>{{ deletingSongId === song.id ? "删除中" : "删除" }}</span>
+                </button>
+              </div>
+            </div>
+          </section>
         </div>
         <div v-else-if="viewMode === 'library'" class="folder-grid">
           <button v-for="folder in folderGroups" :key="folder.name" class="folder-card" type="button" @click="openFolder(folder.name)">

@@ -30,6 +30,25 @@ export type AdminUploadedSong = {
   playUrl: string;
 };
 
+export type AdminSong = AdminUploadedSong;
+
+export type AdminSongListParams = {
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
+  folder?: string;
+};
+
+export type AdminSongListResponse = {
+  data: AdminSong[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
 export async function loginAdmin(password: string) {
   const response = await api.post<AdminLoginResponse>("/admin/login", {
     password
@@ -40,6 +59,17 @@ export async function loginAdmin(password: string) {
 
 export async function fetchAdminSession(token: string) {
   const response = await api.get<{ data: AdminSession }>("/admin/me", {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  return response.data;
+}
+
+export async function fetchAdminSongs(token: string, params: AdminSongListParams = {}) {
+  const response = await api.get<AdminSongListResponse>("/admin/songs", {
+    params,
     headers: {
       Authorization: `Bearer ${token}`
     }
@@ -60,4 +90,12 @@ export async function uploadAdminSong(token: string, payload: { file: File; fold
   });
 
   return response.data;
+}
+
+export async function deleteAdminSong(token: string, songId: string) {
+  await api.delete(`/admin/songs/${songId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
 }
