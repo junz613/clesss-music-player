@@ -1112,7 +1112,7 @@ function handleVolumeInput(event: Event) {
             </span>
             <div>
               <strong>删除歌曲</strong>
-              <small>第 11 步接入软删除</small>
+              <small>搜索歌曲并执行软删除</small>
             </div>
           </section>
 
