@@ -1,27 +1,34 @@
 # music-player-app
 
-播放器应用代码目录。
+这是 ClessS Music Player 的应用代码目录。
 
-当前进度：
+完整项目说明、当前进度、环境配置和启动方式见仓库根目录的 [README.md](../README.md)。
 
-- `server` 已完成 Express + TypeScript + Prisma + MySQL 基础服务。
-- 已支持健康检查、歌曲列表、歌曲搜索、本地歌曲扫描入库和 Range 音频流。
-- `client` 已完成 Vue 3 + Vite + TypeScript 基础界面，风格参考 `ui图片素材/2.png`。
-- 已完成本地播放小 demo，支持播放/暂停、上一首/下一首、结束自动切歌和播放进度跳转。
-- 已支持播放列表浮层、播放模式切换和音量调节。
-- 已支持完整歌曲列表分批加载，以及按本地文件夹进入歌曲库分类。
-
-目录结构：
+## 目录
 
 ```text
-client/   前端 Vue 3 + Vite 项目
-server/   后端 Express + TypeScript + Prisma 项目
-docs/     接口、数据库和部署补充文档
+client/   前端 Vue 3 + Vite + TypeScript 项目
+server/   后端 Express + TypeScript + Prisma + MySQL 项目
+docs/     后续接口、数据库和部署补充文档目录
 ```
 
-本地启动：
+## 常用命令
+
+```powershell
+pnpm install
+pnpm server:dev
+pnpm client:dev
+pnpm server:build
+pnpm client:build
+```
+
+开发时通常需要分别启动后端和前端：
 
 ```powershell
 pnpm server:dev
 pnpm client:dev
 ```
+
+前端地址：`http://localhost:5173`
+
+后端地址：`http://localhost:3000`
